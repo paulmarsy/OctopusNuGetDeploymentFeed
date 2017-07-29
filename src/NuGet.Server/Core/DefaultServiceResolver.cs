@@ -17,6 +17,7 @@ namespace NuGet.Server
         private readonly ServerPackageRepository _packageRepository;
         private readonly PackageAuthenticationService _packageAuthenticationService;
         private readonly WebConfigSettingsProvider _settingsProvider;
+        private readonly Core.Logging.ILogger _logger;
 
         public DefaultServiceResolver() : this(
             PackageUtility.PackagePhysicalPath,
@@ -34,10 +35,17 @@ namespace NuGet.Server
 
             _packageAuthenticationService = new PackageAuthenticationService(settings);
 
+            _logger = new ConsoleLogger();
+
         }
 
         public object Resolve(Type type)
         {
+            if (type == typeof(Core.Logging.ILogger))
+            {
+                return _logger;
+            }
+
             if (type == typeof(IHashProvider))
             {
                 return _hashProvider;

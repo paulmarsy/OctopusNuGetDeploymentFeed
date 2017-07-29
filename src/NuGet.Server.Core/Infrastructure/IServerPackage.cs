@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.Versioning;
 
 namespace NuGet.Server.Core.Infrastructure
@@ -26,20 +27,16 @@ namespace NuGet.Server.Core.Infrastructure
         IEnumerable<PackageDependencySet> DependencySets { get; }
         string Copyright { get; }
         string Tags { get; }
-        bool SemVer1IsAbsoluteLatest { get; }
-        bool SemVer1IsLatest { get; }
-        bool SemVer2IsAbsoluteLatest { get; }
-        bool SemVer2IsLatest { get; }
         bool Listed { get; }
         Version MinClientVersion { get; }
         string Language { get; }
         long PackageSize { get; }
         string PackageHash { get; }
         string PackageHashAlgorithm { get; }
-        string FullPath { get; }
         DateTimeOffset LastUpdated { get; }
         DateTimeOffset Created { get; }
-
-        IEnumerable<FrameworkName> GetSupportedFrameworks();
+        bool IsLatestVersion { get; }
+        bool IsAbsoluteLatestVersion { get; }
+        Stream GetStream();
     }
 }

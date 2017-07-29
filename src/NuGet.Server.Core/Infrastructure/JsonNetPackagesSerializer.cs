@@ -10,45 +10,19 @@ using Newtonsoft.Json;
 
 namespace NuGet.Server.Core.Infrastructure
 {
-    public class JsonNetPackagesSerializer
-        : IPackagesSerializer
+    public static class JsonNetExtensions
     {
-        private static readonly SemanticVersion CurrentSchemaVersion = new SemanticVersion("3.0.0");
-
-        private readonly JsonSerializer _serializer = new JsonSerializer
-        {
-            Formatting = Formatting.None,
-            NullValueHandling = NullValueHandling.Ignore
+        private static readonly JsonSerializer JsonSerializer = new JsonSerializer
+        { 
+            TypeNameHandling = TypeNameHandling.None,
+            Formatting = Formatting.Indented
         };
-
-        public void Serialize(IEnumerable<ServerPackage> packages, Stream stream)
+        public static void SerializeInto(this object @object, Stream stream)
         {
-            using (var writer = new JsonTextWriter(new StreamWriter(stream, Encoding.UTF8, 1024, true)))
+            using (var streamWriter = new StreamWriter(stream, Encoding.UTF8, 1024, true))
+            using (var jsonTextWriter = new JsonTextWriter(streamWriter))
             {
-                _serializer.Serialize(
-                    writer,
-                    new SerializedServerPackages
-                    {
-                        SchemaVersion = CurrentSchemaVersion,
-                        Packages = packages.ToList()
-                    });
-            }
-        }
-
-        public IEnumerable<ServerPackage> Deserialize(Stream stream)
-        {
-            using (var reader = new JsonTextReader(new StreamReader(stream, Encoding.UTF8, false, 1024, true)))
-            {
-                var packages = _serializer.Deserialize<SerializedServerPackages>(reader);
-
-                if (packages == null || packages.SchemaVersion != CurrentSchemaVersion)
-                {
-                    throw new SerializationException(
-                        $"The expected schema version of the packages file is '{CurrentSchemaVersion}', not " +
-                        $"'{packages?.SchemaVersion}'.");
-                }
-                
-                return packages.Packages;
+                JsonSerializer.Serialize(jsonTextWriter, @object);
             }
         }
     }

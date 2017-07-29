@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 using NuGet.Server.Core.Infrastructure;
@@ -11,6 +12,17 @@ namespace NuGet.Server.Core.DataServices
 {
     public static class PackageExtensions
     {
+        public static string GetHash(this IServerPackage package, string hashAlgorithm)
+        {
+            return package.GetHash((IHashProvider)new CryptoHashProvider(hashAlgorithm));
+        }
+
+        private static string GetHash(this IServerPackage package, IHashProvider hashProvider)
+        {
+            using (Stream stream = package.GetStream())
+                return Convert.ToBase64String(hashProvider.CalculateHash(stream));
+        }
+
         public static ODataPackage AsODataPackage(this IServerPackage package, ClientCompatibility compatibility)
         {
             return new ODataPackage
@@ -39,8 +51,8 @@ namespace NuGet.Server.Core.DataServices
                 PackageSize = package.PackageSize,
                 Copyright = package.Copyright,
                 Tags = package.Tags,
-                IsAbsoluteLatestVersion = compatibility.AllowSemVer2 ? package.SemVer2IsAbsoluteLatest : package.SemVer1IsAbsoluteLatest,
-                IsLatestVersion = compatibility.AllowSemVer2 ? package.SemVer2IsLatest : package.SemVer1IsLatest,
+                IsAbsoluteLatestVersion = package.IsAbsoluteLatestVersion,
+                IsLatestVersion =package.IsLatestVersion,
                 Listed = package.Listed,
                 VersionDownloadCount = package.DownloadCount,
                 MinClientVersion = package.MinClientVersion == null ? null : package.MinClientVersion.ToString(),
