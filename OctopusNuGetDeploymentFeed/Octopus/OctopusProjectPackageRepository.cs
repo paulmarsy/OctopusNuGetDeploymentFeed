@@ -51,23 +51,23 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public async Task<IEnumerable<IServerPackage>> GetPackagesAsync(string id, bool allowPrereleaseVersions, CancellationToken token)
         {
-                var project = await GetProject(id);
-                if (project == null)
-                    return Enumerable.Empty<IServerPackage>();
+            var project = await GetProject(id);
+            if (project == null)
+                return Enumerable.Empty<IServerPackage>();
 
-                return await GetProjectReleases(project, allowPrereleaseVersions, token);
+            return await GetProjectReleases(project, allowPrereleaseVersions, token);
         }
 
 
         public async Task<IEnumerable<IServerPackage>> FindPackagesAsync(string searchTerm, bool allowPrereleaseVersions, CancellationToken token)
         {
-                var results = new List<IServerPackage>();
-                foreach (var project in await FindProject(searchTerm))
-                {
-                    token.ThrowIfCancellationRequested();
-                    results.AddRange(await GetProjectReleases(project, allowPrereleaseVersions, token));
-                }
-                return results;
+            var results = new List<IServerPackage>();
+            foreach (var project in await FindProject(searchTerm))
+            {
+                token.ThrowIfCancellationRequested();
+                results.AddRange(await GetProjectReleases(project, allowPrereleaseVersions, token));
+            }
+            return results;
         }
 
         public bool IsAuthenticated
@@ -87,7 +87,7 @@ namespace OctopusDeployNuGetFeed.Octopus
                 }
             }
         }
-        
+
 
         private async Task<ProjectResource> GetProject(string id)
         {

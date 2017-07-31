@@ -6,11 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="deploy.config" />
     <None Remove="deploy.ps1" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="deploy.ps1" />
+    <EmbeddedResource Include="Resources\deploy.config" />
+    <EmbeddedResource Include="Resources\deploy.ps1" />
   </ItemGroup>
 
   <ItemGroup>

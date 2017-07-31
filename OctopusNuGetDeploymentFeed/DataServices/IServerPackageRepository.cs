@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
-    public interface IServerPackageRepository 
+    public interface IServerPackageRepository
     {
         bool IsAuthenticated { get; }
         string BaseUri { get; }

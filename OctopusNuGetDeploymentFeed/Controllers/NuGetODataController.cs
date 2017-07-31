@@ -36,15 +36,15 @@ namespace OctopusDeployNuGetFeed.Controllers
         {
             _logger.Info($"NuGetODataController.Get: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
-                if (!serverRepository.IsAuthenticated)
-                    return StatusCode(HttpStatusCode.Forbidden);
+            if (!serverRepository.IsAuthenticated)
+                return StatusCode(HttpStatusCode.Forbidden);
 
-                var package = await serverRepository.GetPackageVersionAsync(id, version, token);
-                if (package == null)
-                    return NotFound();
+            var package = await serverRepository.GetPackageVersionAsync(id, version, token);
+            if (package == null)
+                return NotFound();
 
-                return TransformToQueryResult(options, new[] {package}, ClientCompatibility.Max)
-                    .FormattedAsSingleResult<ODataPackage>();
+            return TransformToQueryResult(options, new[] {package}, ClientCompatibility.Max)
+                .FormattedAsSingleResult<ODataPackage>();
         }
 
         // GET/POST /FindPackagesById()?id=
@@ -65,12 +65,12 @@ namespace OctopusDeployNuGetFeed.Controllers
             }
 
             var clientCompatibility = ClientCompatibilityFactory.FromProperties(semVerLevel);
-          var serverRepository = _repositoryFactory.GetPackageRepository(User);
-                if (!serverRepository.IsAuthenticated)
-                    return StatusCode(HttpStatusCode.Forbidden);
+            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            if (!serverRepository.IsAuthenticated)
+                return StatusCode(HttpStatusCode.Forbidden);
 
-                var sourceQuery = await serverRepository.GetPackagesAsync(id, true, token);
-                return TransformToQueryResult(options, sourceQuery, clientCompatibility);
+            var sourceQuery = await serverRepository.GetPackagesAsync(id, true, token);
+            return TransformToQueryResult(options, sourceQuery, clientCompatibility);
         }
 
 
@@ -105,15 +105,15 @@ namespace OctopusDeployNuGetFeed.Controllers
 
             var clientCompatibility = ClientCompatibilityFactory.FromProperties(semVerLevel);
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
-                if (!serverRepository.IsAuthenticated)
-                    return StatusCode(HttpStatusCode.Forbidden);
+            if (!serverRepository.IsAuthenticated)
+                return StatusCode(HttpStatusCode.Forbidden);
 
-                var sourceQuery = await serverRepository.FindPackagesAsync(
-                    searchTerm,
-                    includePrerelease,
-                    token);
+            var sourceQuery = await serverRepository.FindPackagesAsync(
+                searchTerm,
+                includePrerelease,
+                token);
 
-                return TransformToQueryResult(options, sourceQuery, clientCompatibility);
+            return TransformToQueryResult(options, sourceQuery, clientCompatibility);
         }
 
         // GET /Search()/$count?searchTerm=&targetFramework=&includePrerelease=
@@ -158,33 +158,33 @@ namespace OctopusDeployNuGetFeed.Controllers
         {
             _logger.Info($"NuGetODataController.Download: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
-                if (!serverRepository.IsAuthenticated)
-                    return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
+            if (!serverRepository.IsAuthenticated)
+                return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
 
-                var requestedPackage = await serverRepository.GetPackageVersionAsync(id, version, token);
+            var requestedPackage = await serverRepository.GetPackageVersionAsync(id, version, token);
 
-                if (requestedPackage == null)
-                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, $"'Package {id} {version}' Not found.");
+            if (requestedPackage == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, $"'Package {id} {version}' Not found.");
 
-                var responseMessage = Request.CreateResponse(HttpStatusCode.OK);
+            var responseMessage = Request.CreateResponse(HttpStatusCode.OK);
 
-                if (Request.Method == HttpMethod.Get)
-                    responseMessage.Content = new StreamContent(requestedPackage.GetStream());
-                else
-                    responseMessage.Content = new StringContent(string.Empty);
+            if (Request.Method == HttpMethod.Get)
+                responseMessage.Content = new StreamContent(requestedPackage.GetStream());
+            else
+                responseMessage.Content = new StringContent(string.Empty);
 
-                responseMessage.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("binary/octet-stream");
-                responseMessage.Content.Headers.LastModified = requestedPackage.LastUpdated;
-                responseMessage.Headers.ETag = new EntityTagHeaderValue($"\"{requestedPackage.PackageHash}\"");
+            responseMessage.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("binary/octet-stream");
+            responseMessage.Content.Headers.LastModified = requestedPackage.LastUpdated;
+            responseMessage.Headers.ETag = new EntityTagHeaderValue($"\"{requestedPackage.PackageHash}\"");
 
-                responseMessage.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue(DispositionTypeNames.Attachment)
-                {
-                    FileName = $"{requestedPackage.Id}.{requestedPackage.Version}{Constants.PackageExtension}",
-                    Size = requestedPackage.PackageSize,
-                    ModificationDate = responseMessage.Content.Headers.LastModified
-                };
+            responseMessage.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue(DispositionTypeNames.Attachment)
+            {
+                FileName = $"{requestedPackage.Id}.{requestedPackage.Version}{Constants.PackageExtension}",
+                Size = requestedPackage.PackageSize,
+                ModificationDate = responseMessage.Content.Headers.LastModified
+            };
 
-                return responseMessage;
+            return responseMessage;
         }
 
         protected virtual IHttpActionResult QueryResult<TModel>(ODataQueryOptions<TModel> options, IQueryable<TModel> queryable, int maxPageSize)

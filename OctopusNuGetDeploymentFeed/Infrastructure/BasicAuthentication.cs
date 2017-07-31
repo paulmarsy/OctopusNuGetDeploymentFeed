@@ -21,10 +21,10 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 
             response.OnSendingHeaders(state =>
             {
-                var owinResponse = (OwinResponse)state;
+                var owinResponse = (OwinResponse) state;
 
                 if (owinResponse.StatusCode == 401)
-                    owinResponse.Headers.Add("WWW-Authenticate", new[] { "Basic" });
+                    owinResponse.Headers.Add("WWW-Authenticate", new[] {"Basic"});
             }, response);
 
             var header = request.Headers["Authorization"];

@@ -23,7 +23,8 @@ namespace OctopusDeployNuGetFeed
         public IDisposable App { get; private set; }
 
         public void Configuration(IAppBuilder appBuilder)
-        {   var config = new HttpConfiguration();
+        {
+            var config = new HttpConfiguration();
             config.UseNuGetV2WebApiFeed(
                 "OctopusNuGetDeploymentFeed",
                 "nuget",

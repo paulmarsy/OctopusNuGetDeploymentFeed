@@ -1,17 +1,24 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace OctopusDeployNuGetFeed.Logging
 {
     public class ConsoleLogger : ILogger
     {
+        public void Error(string message)
+        {
+            WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "ERROR", message);
+        }
 
-        public void Error(string message) => WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "ERROR", message);
+        public void Warning(string message)
+        {
+            WritePrefixLine(ConsoleColor.DarkYellow, ConsoleColor.Yellow, "WARNING", message);
+        }
 
-        public void Warning(string message) => WritePrefixLine(ConsoleColor.DarkYellow, ConsoleColor.Yellow, "WARNING", message);
-
-        public void Info(string message) => Console.WriteLine(message);
+        public void Info(string message)
+        {
+            Console.WriteLine(message);
+        }
 
         public void Debug(string message)
         {
@@ -19,17 +26,18 @@ namespace OctopusDeployNuGetFeed.Logging
             WritePrefixLine(ConsoleColor.DarkGray, ConsoleColor.DarkGray, "DEBUG", message);
 #endif
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WritePrefixLine(ConsoleColor prefixColour, ConsoleColor colour, string prefix, string message)
         {
-            System.Console.BackgroundColor = prefixColour;
-            System.Console.ForegroundColor = GetContrastingForegroundColor(prefixColour);
+            Console.BackgroundColor = prefixColour;
+            Console.ForegroundColor = GetContrastingForegroundColor(prefixColour);
             Console.Write($" {prefix} ");
-            System.Console.ResetColor();
+            Console.ResetColor();
 
-            System.Console.ForegroundColor = colour;
-            Console.WriteLine(" "  + message);
-            System.Console.ResetColor();
+            Console.ForegroundColor = colour;
+            Console.WriteLine(" " + message);
+            Console.ResetColor();
         }
 
         private static ConsoleColor GetContrastingForegroundColor(ConsoleColor backgroundColor)

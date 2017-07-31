@@ -2,14 +2,45 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$Chain_SnapshotVariables = 'False'
-$Chain_GuidedFailure = 'Default'
-$Chain_DeploySchedule = 'WaitForDeployment'
-$Chain_DeployTo = $OctopusParameters['Octopus.Environment.Name']
-$Chain_Tenants = $OctopusParameters['Octopus.Deployment.Tenant.Name']
-$Chain_StepsToSkip = $null
-$Chain_FormValues = $null
+$taskId = [int]$OctopusParameters['Octopus.Task.Id'].Split('-')[1]
+Write-Verbose "Octopus.Task.Id: $taskId"
+$deploymentId = [int]$OctopusParameters['Octopus.Deployment.Id'].Split('-')[1]
+Write-Verbose "Octopus.Deployment.Id: $deploymentId"
+$creationTime = [datetime]::Parse($OctopusParameters['Octopus.Deployment.CreatedUtc']).TimeOfDay.TotalSeconds
+Write-Verbose "Creation Time: $creationTime"
 
+$randomSeed = $taskId + $deploymentId + $creationTime
+Write-Verbose "Random Seed: $randomSeed"
+$rng = [System.Random]::new($randomSeed)
+$actionNumber = [int]$OctopusParameters['Octopus.Action.Number']
+Write-Verbose "Octopus.Action.Number: $actionNumber"
+1..$actionNumber | % { $rng.Next() } | Out-Null
+$machineSet = @($OctopusParameters['Octopus.Action.TargetRoles'] -split ',' | % { $OctopusParameters[('Octopus.Environment.MachinesInRole[{0}]' -f $_)] -split ',' } | Sort-Object -Unique)
+Write-Verbose "Machine Set: $($machineSet -join ', ')"
+$targetMachineId = $machineSet[$rng.Next() % $machineSet.Count]
+Write-Verbose "Target Machine Id: $targetMachineId"
+if ($targetMachineId -ne $OctopusParameters['Octopus.Machine.Id']) {
+	Write-Host "Target machine id ($targetMachineId) does not match this machine ($($OctopusParameters['Octopus.Machine.Id'])), this step will be skipped..."
+	return
+}
+
+function Get-DeployConfigSetting {
+    param([Parameter(Position = 0, Mandatory)][string]$Name, [Parameter(Position = 1, Mandatory)]$DefaultValue, [Parameter(Position = 2)]$RuntimeDefaultValue)
+
+	$deployConfig = [xml](Get-Content -Path (Join-Path $PSScriptRoot 'deploy.config'))
+	$value = $deployConfig.configuration.appSettings.add | ? key -eq $Name | % value | % Trim
+	$retValue = if ($value -ieq $DefaultValue) {
+		if ((Test-String $RuntimeDefaultValue) -and $OctopusParameters.ContainsKey($RuntimeDefaultValue)) {
+			$OctopusParameters[$RuntimeDefaultValue]
+		} else {
+			$DefaultValue
+		}
+	} else {
+		$value
+	}
+	Write-Verbose "Deploy Config Setting $Name = $retValue"
+	return $retValue
+}
 $NuGetPackageServer = Get-Content -Path (Join-Path $PSScriptRoot 'server.json') | ConvertFrom-Json
 $Chain_BaseUrl = $NuGetPackageServer.BaseUri
 $Chain_ApiKey = $NuGetPackageServer.ApiKey
@@ -634,6 +665,8 @@ function Show-Heading {
 
 $deploymentContext = [DeploymentContext]::new($Chain_BaseUrl)
 
+Write-Verbose (Get-Content -Path (Join-Path $PSScriptRoot 'deploy.config') -Raw)
+
 Show-Heading 'Retrieving Release'
 $deploymentContext.SetProject()
 $deploymentContext.SetChannel()
@@ -641,7 +674,7 @@ Write-Host "`t$Chain_BaseUrl$($deploymentContext.Project.Links.Web)"
 
 $deploymentContext.SetRelease()
 Write-Host "`t$Chain_BaseUrl$($deploymentContext.Release.Links.Web)"
-if ($Chain_SnapshotVariables -ieq 'True') {
+if ((Get-DeployConfigSetting "Octopus.Action.SnapshotVariables" "False") -ieq 'True') {
     $deploymentContext.UpdateVariableSnapshot()
 }
 
@@ -654,18 +687,20 @@ Initiated by $($OctopusParameters['Octopus.Deployment.Name']) of $($OctopusParam
 Created By: $($OctopusParameters['Octopus.Deployment.CreatedBy.DisplayName']) $email
 ${Chain_BaseUrl}$($OctopusParameters['Octopus.Web.DeploymentLink'])
 "@
-$deploymentContext.SetGuidedFailure($Chain_GuidedFailure, $guidedFailureMessage)
-$deploymentContext.SetSchedule($Chain_DeploySchedule)
+$deploymentContext.SetGuidedFailure((Get-DeployConfigSetting "Octopus.Action.GuidedFailure" "Default"), $guidedFailureMessage)
+$deploymentContext.SetSchedule((Get-DeployConfigSetting "Octopus.Action.Schedule" "WaitForDeployment"))
 
-$deploymentContext.SetEnvironment($Chain_DeployTo)
-$deploymentContext.SetTenants($Chain_Tenants)
+$deploymentContext.SetEnvironment((Get-DeployConfigSetting "Octopus.Action.EnvironmentName" "#{Octopus.Environment.Name}" 'Octopus.Environment.Name'))
+$deploymentContext.SetTenants((Get-DeployConfigSetting "Octopus.Action.TenantName" "#{Octopus.Deployment.Tenant.Name}" 'Octopus.Deployment.Tenant.Name'))
 
 $deploymentControllers = $deploymentContext.GetDeploymentControllers()
-if (Test-String $Chain_StepsToSkip) {
-    $deploymentControllers | % { $_.SetStepsToSkip($Chain_StepsToSkip) }
+$stepsToSkip = Get-DeployConfigSetting "Octopus.Action.StepsToSkip"
+if (Test-String $stepsToSkip) {
+    $deploymentControllers | % { $_.SetStepsToSkip($stepsToSkip) }
 }
-if (Test-String $Chain_FormValues) {
-    $deploymentControllers | % { $_.SetFormValues($Chain_FormValues) }
+$formValues = Get-DeployConfigSetting "Octopus.Action.FormValues"
+if (Test-String $formValues) {
+    $deploymentControllers | % { $_.SetFormValues($formValues) }
 }
 
 Show-Heading 'Queue Deployment'

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Owin;
 using OctopusDeployNuGetFeed.Logging;
@@ -13,7 +10,8 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         private readonly ILogger _logger = Startup.Logger;
 
         public GlobalExceptionMiddleware(OwinMiddleware next) : base(next)
-        { }
+        {
+        }
 
         public override async Task Invoke(IOwinContext context)
         {

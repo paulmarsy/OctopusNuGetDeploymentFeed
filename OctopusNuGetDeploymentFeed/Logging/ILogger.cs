@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace OctopusDeployNuGetFeed.Logging
 {
     public interface ILogger

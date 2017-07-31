@@ -4,6 +4,7 @@ namespace OctopusDeployNuGetFeed.Logging
     {
         private readonly ILogger _console = new ConsoleLogger();
         private readonly ILogger _logFile = new FileLogger();
+
         public void Error(string message)
         {
             _console.Error(message);
