@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OctopusDeployNuGetFeed": {
+      "commandName": "Project",
+      "commandLineArgs": "-port:9000"
+    }
+  }
+}
