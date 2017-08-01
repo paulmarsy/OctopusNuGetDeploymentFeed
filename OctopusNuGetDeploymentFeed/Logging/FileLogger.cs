@@ -36,7 +36,6 @@ namespace OctopusDeployNuGetFeed.Logging
 
         public void Debug(string message)
         {
-            WriteLogFile(message, "DEBUG");
         }
 
         private void Init()
@@ -54,9 +53,14 @@ namespace OctopusDeployNuGetFeed.Logging
                 }
         }
 
-        private void WriteLogFile(string message, string prefix)
+        private static void WriteLogFile(string message, string prefix)
         {
-            File.AppendAllText(LogFile, $"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}", Encoding.UTF8);
+            var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
+
+            using (var fileStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+            {
+                fileStream.Write(buffer, 0, buffer.Length);
+            }
         }
     }
 }

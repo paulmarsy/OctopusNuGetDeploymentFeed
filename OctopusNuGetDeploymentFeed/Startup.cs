@@ -43,6 +43,7 @@ namespace OctopusDeployNuGetFeed
 
         public void Start()
         {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
             Logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
 
             Logger.Info($"Host: {Program.Host}");
@@ -51,6 +52,12 @@ namespace OctopusDeployNuGetFeed
             Logger.Info("Starting WebApp...");
             App = WebApp.Start<Startup>(BaseAddress);
             Logger.Info($"Listening on {BaseAddress}");
+        }
+
+        private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs unhandledExceptionEventArgs)
+        {
+            var excepion = unhandledExceptionEventArgs.ExceptionObject as Exception;
+            Logger.Error($"Unhandled Exception!!: {excepion?.Message}. {excepion?.InnerException?.Message}\n{excepion?.StackTrace}");
         }
 
         public void Stop()

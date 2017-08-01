@@ -25,8 +25,10 @@ namespace OctopusDeployNuGetFeed.Logging
 
         public void Debug(string message)
         {
+#if DEBUG
             _console.Debug(message);
             _logFile.Debug(message);
+#endif
         }
     }
 }
