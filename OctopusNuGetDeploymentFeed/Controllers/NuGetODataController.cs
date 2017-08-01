@@ -39,7 +39,7 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
-            var package = await serverRepository.GetPackageVersionAsync(id, version, token);
+            var package = await serverRepository.GetProjectReleaseAsync(id, version, token);
             if (package == null)
                 return NotFound();
 
@@ -69,7 +69,7 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
-            var sourceQuery = await serverRepository.GetPackagesAsync(id, true, token);
+            var sourceQuery = await serverRepository.GetProjectReleasesAsync(id, token);
             return TransformToQueryResult(options, sourceQuery, clientCompatibility);
         }
 
@@ -108,10 +108,7 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
-            var sourceQuery = await serverRepository.FindPackagesAsync(
-                searchTerm,
-                includePrerelease,
-                token);
+            var sourceQuery = await serverRepository.FindProjectsAsync(searchTerm, token);
 
             return TransformToQueryResult(options, sourceQuery, clientCompatibility);
         }
@@ -161,7 +158,7 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (!serverRepository.IsAuthenticated)
                 return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
 
-            var requestedPackage = await serverRepository.GetPackageVersionAsync(id, version, token);
+            var requestedPackage = await serverRepository.GetProjectReleaseAsync(id, version, token);
 
             if (requestedPackage == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, $"'Package {id} {version}' Not found.");

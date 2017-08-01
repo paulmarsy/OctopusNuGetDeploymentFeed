@@ -2,33 +2,38 @@ namespace OctopusDeployNuGetFeed.Logging
 {
     public class LogManager : ILogger
     {
-        private readonly ILogger _console = new ConsoleLogger();
-        private readonly ILogger _logFile = new FileLogger();
+        private LogManager()
+        {
+        }
+        public ILogger ConsoleLogger { get; } = new ConsoleLogger();
+        public ILogger FileLogger { get; } = new FileLogger();
 
         public void Error(string message)
         {
-            _console.Error(message);
-            _logFile.Error(message);
+            ConsoleLogger.Error(message);
+            FileLogger.Error(message);
         }
 
         public void Warning(string message)
         {
-            _console.Warning(message);
-            _logFile.Warning(message);
+            ConsoleLogger.Warning(message);
+            FileLogger.Warning(message);
         }
 
         public void Info(string message)
         {
-            _console.Info(message);
-            _logFile.Info(message);
+            ConsoleLogger.Info(message);
+            FileLogger.Info(message);
         }
 
         public void Debug(string message)
         {
 #if DEBUG
-            _console.Debug(message);
-            _logFile.Debug(message);
+            ConsoleLogger.Debug(message);
+            FileLogger.Debug(message);
 #endif
         }
+
+        public static LogManager Current { get; } = new LogManager();
     }
 }

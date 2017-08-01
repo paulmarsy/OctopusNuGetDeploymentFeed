@@ -15,7 +15,7 @@ namespace OctopusDeployNuGetFeed
 {
     public class Startup
     {
-        public static readonly ILogger Logger = new LogManager();
+        public static readonly ILogger Logger = LogManager.Current;
 
         public static string BaseAddress => $"http://{Program.Host}:{Program.Port}/";
         public static IServerPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusProjectPackageRepositoryFactory();

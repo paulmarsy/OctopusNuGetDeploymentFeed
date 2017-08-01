@@ -31,41 +31,40 @@ namespace OctopusDeployNuGetFeed.Octopus
         public string BaseUri { get; }
         public string ApiKey { get; }
 
-        public async Task<IServerPackage> GetPackageVersionAsync(string id, string version, CancellationToken token)
+        public async Task<IServerPackage> GetProjectReleaseAsync(string id, string version, CancellationToken token)
         {
-            var project = await GetProject(id);
+            if (!SemanticVersion.TryParse(version, out SemanticVersion semver))
+            {
+                _logger.Warning($"GetProjectReleaseAsync.SemanticVersion.TryParse: {id} {version}");
+                return null;
+            }
+
+            var project = await Client.Repository.Projects.FindByName(id);
             if (project == null)
                 return null;
-            var release = await Client.Repository.Releases.FindOne(currentRelease =>
-            {
-                if (!SemanticVersion.TryParse(currentRelease.Version, out SemanticVersion currentReleaseSemver))
-                    return false;
 
-                return string.Equals(version, currentReleaseSemver.ToOriginalString(), StringComparison.OrdinalIgnoreCase) || string.Equals(version, currentReleaseSemver.ToNormalizedString(), StringComparison.OrdinalIgnoreCase) || string.Equals(version, currentReleaseSemver.ToFullString(), StringComparison.OrdinalIgnoreCase);
-            });
-            if (release == null)
-                return null;
-
-            return new OctopusServerPackage(_logger, this, release, SemanticVersion.Parse(release.Version), project, true, true);
+            return (await GetProjectReleases(project, true, token)).SingleOrDefault(package => semver.Equals(package.Version) ||
+                                                                                         string.Equals(version, package.Version.ToOriginalString(), StringComparison.OrdinalIgnoreCase) ||
+                                                                                         string.Equals(version, package.Version.ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
+                                                                                         string.Equals(version, package.Version.ToFullString(), StringComparison.OrdinalIgnoreCase));
         }
 
-        public async Task<IEnumerable<IServerPackage>> GetPackagesAsync(string id, bool allowPrereleaseVersions, CancellationToken token)
+        public async Task<IEnumerable<IServerPackage>> GetProjectReleasesAsync(string id, CancellationToken token)
         {
-            var project = await GetProject(id);
+            var project = await Client.Repository.Projects.FindByName(id);
             if (project == null)
                 return Enumerable.Empty<IServerPackage>();
 
-            return await GetProjectReleases(project, allowPrereleaseVersions, token);
+            return await GetProjectReleases(project, false, token);
         }
-
-
-        public async Task<IEnumerable<IServerPackage>> FindPackagesAsync(string searchTerm, bool allowPrereleaseVersions, CancellationToken token)
+        
+        public async Task<IEnumerable<IServerPackage>> FindProjectsAsync(string searchTerm, CancellationToken token)
         {
             var results = new List<IServerPackage>();
-            foreach (var project in await FindProject(searchTerm))
+            foreach (var project in await Client.Repository.Projects.FindMany(project => project.Name.WildcardMatch($"*{searchTerm}*")))
             {
                 token.ThrowIfCancellationRequested();
-                results.AddRange(await GetProjectReleases(project, allowPrereleaseVersions, token));
+                results.AddRange(await GetProjectReleases(project, false, token));
             }
             return results;
         }
@@ -87,14 +86,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                 }
             }
         }
-
-
-        private async Task<ProjectResource> GetProject(string id)
-        {
-            return await Client.Repository.Projects.FindByName(id);
-        }
-
-        private async Task<IEnumerable<IServerPackage>> GetProjectReleases(ProjectResource project, bool allowPrereleaseVersions, CancellationToken token)
+        
+        private async Task<IEnumerable<IServerPackage>> GetProjectReleases(ProjectResource project, bool detailedView, CancellationToken token)
         {
             var results = new List<IServerPackage>();
 
@@ -107,18 +100,11 @@ namespace OctopusDeployNuGetFeed.Octopus
                     _logger.Warning($"GetProjectReleases.SemanticVersion.TryParse: {project.Name} ({project.Id}) {release.Version}");
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(version.SpecialVersion) && !allowPrereleaseVersions)
-                    continue;
-                results.Add(new OctopusServerPackage(_logger, this, release, version, project, isLatest, false));
+                results.Add(new OctopusServerPackage(_logger, this, release, version, project, isLatest, detailedView));
                 isLatest = false;
             }
 
             return results;
-        }
-
-        private async Task<List<ProjectResource>> FindProject(string searchTerm)
-        {
-            return await Client.Repository.Projects.FindMany(project => project.Name.WildcardMatch($"*{searchTerm}*"));
         }
     }
 }
