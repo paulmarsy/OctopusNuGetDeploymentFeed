@@ -29,17 +29,23 @@ function Get-DeployConfigSetting {
 
 	$deployConfig = [xml](Get-Content -Path (Join-Path $PSScriptRoot 'deploy.config'))
 	$value = $deployConfig.configuration.appSettings.add | ? key -eq $Name | % value | % Trim
-	$retValue = if ($value -ieq $DefaultValue) {
-		if ((Test-String $RuntimeDefaultValue) -and $OctopusParameters.ContainsKey($RuntimeDefaultValue)) {
-			$OctopusParameters[$RuntimeDefaultValue]
+	if ($value -ieq $DefaultValue) {
+		if (Test-String $RuntimeDefaultValue) {
+			if ($OctopusParameters.ContainsKey($RuntimeDefaultValue)) {
+				Write-Verbose "Deploy Config Setting (Runtime-Found) $Name = $($OctopusParameters[$RuntimeDefaultValue])"
+				return $OctopusParameters[$RuntimeDefaultValue]
+			} else {
+				Write-Verbose "Deploy Config Setting (Runtime-NotFound) $Name = `$null"
+				return $null
+			}
 		} else {
-			$DefaultValue
+			Write-Verbose "Deploy Config Setting (Default) $Name = $($DefaultValue)"
+			return $DefaultValue
 		}
 	} else {
-		$value
+		Write-Verbose "Deploy Config Setting (Config) $Name = $($value)"
+		return $value
 	}
-	Write-Verbose "Deploy Config Setting $Name = $retValue"
-	return $retValue
 }
 $NuGetPackageServer = Get-Content -Path (Join-Path $PSScriptRoot 'server.json') | ConvertFrom-Json
 $Chain_BaseUrl = $NuGetPackageServer.BaseUri
@@ -694,11 +700,11 @@ $deploymentContext.SetEnvironment((Get-DeployConfigSetting "Octopus.Action.Envir
 $deploymentContext.SetTenants((Get-DeployConfigSetting "Octopus.Action.TenantName" "#{Octopus.Deployment.Tenant.Name}" 'Octopus.Deployment.Tenant.Name'))
 
 $deploymentControllers = $deploymentContext.GetDeploymentControllers()
-$stepsToSkip = Get-DeployConfigSetting "Octopus.Action.StepsToSkip"
+$stepsToSkip = Get-DeployConfigSetting "Octopus.Action.StepsToSkip" ''
 if (Test-String $stepsToSkip) {
     $deploymentControllers | % { $_.SetStepsToSkip($stepsToSkip) }
 }
-$formValues = Get-DeployConfigSetting "Octopus.Action.FormValues"
+$formValues = Get-DeployConfigSetting "Octopus.Action.FormValues" ''
 if (Test-String $formValues) {
     $deploymentControllers | % { $_.SetFormValues($formValues) }
 }
