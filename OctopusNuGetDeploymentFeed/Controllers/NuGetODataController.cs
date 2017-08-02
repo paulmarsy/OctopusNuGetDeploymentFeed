@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.OData;
 using System.Web.Http.OData.Query;
+using System.Web.Http.Results;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Infrastructure;
 using OctopusDeployNuGetFeed.Logging;
@@ -24,6 +26,13 @@ namespace OctopusDeployNuGetFeed.Controllers
         private readonly ILogger _logger = Startup.Logger;
 
         private readonly IServerPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
+
+        protected override ExceptionResult InternalServerError(Exception exception)
+        {
+            _logger.Error($"NuGetODataController.InternalServerError {Request.Method} {Request.RequestUri}: {exception?.Message}. {exception?.InnerException?.Message}\n{exception?.StackTrace}");
+
+            return base.InternalServerError(exception);
+        }
 
         // GET /Packages(Id=,Version=)
         [HttpGet]
