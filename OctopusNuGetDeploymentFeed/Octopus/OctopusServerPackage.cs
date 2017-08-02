@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 using NuGet;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.DataServices;
@@ -14,6 +15,19 @@ using SemanticVersion = NuGet.SemanticVersion;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
+    //public class OctopusServerPackage
+    //{
+    //    private readonly Microsoft.Extensions.Caching.Memory.MemoryCache _cache;
+
+    //    public OctopusServerPackage()
+    //    {
+    //        _cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(new MemoryCacheOptions
+    //        {
+    //            CompactOnMemoryPressure = true,
+    //            ExpirationScanFrequency = TimeSpan.FromMinutes(10)
+    //        });
+    //    }
+    //}
     public class OctopusServerPackage : IServerPackage, IPackageMetadata
     {
         private static readonly byte[] DeployPs1;
@@ -71,11 +85,32 @@ namespace OctopusDeployNuGetFeed.Octopus
             get
             {
                 if (_detailedView)
-                    return $"Project: [{Project.Name}]({ProjectUrl}) <br/>\nRelease: [{Release.Version}]({ReleaseUrl}) <br/>\nChannel: {Channel.Name} <br/>\n{(string.IsNullOrWhiteSpace(ReleaseNotes) ? null : $"Release Notes:\n\n{ReleaseNotes}")}";
-                return $"Octopus Project: {Project.Name} ({Project.Id}) {(string.IsNullOrWhiteSpace(Project.Description) ? null : Project.Description)}";
+                    return $"_Project:_ [{Project.Name}]({ProjectUrl}) <br/>\n" +
+                           $"_Release:_ [{Release.Version}]({ReleaseUrl}) <br/>\n" +
+                           $"_Channel:_ {Channel.Name} <br/>\n" +
+                           $"{GetDescriptionReleaseNotes()}\n" +
+                           $"{GetDescriptionSelectedPackages()}\n";
+                return $"Octopus Project: {Project.Name} ({Project.Id}) {Project.Description}";
             }
         }
 
+        private string GetDescriptionReleaseNotes() => string.IsNullOrWhiteSpace(ReleaseNotes) ? null : $"_Release Notes_\n" +
+                                                                                                        $"```\n" +
+                                                                                                        $"{ReleaseNotes.Trim('`')}\n" +
+                                                                                                        $"```";
+
+        private string GetDescriptionSelectedPackages()
+        {
+            if (!Release.SelectedPackages.Any())
+                return null;
+
+            var sb = new StringBuilder("_Packages_");
+
+            foreach (var selectedPackage in Release.SelectedPackages)
+                sb.AppendLine($"- {selectedPackage.StepName} _{selectedPackage.Version}_");
+
+            return sb.ToString();
+        }
         public string Summary => Project.Description;
         public string ReleaseNotes => Release.ReleaseNotes;
         public IEnumerable<PackageDependencySet> DependencySets => Enumerable.Empty<PackageDependencySet>();
