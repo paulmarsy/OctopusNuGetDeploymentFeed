@@ -5,8 +5,11 @@ namespace OctopusDeployNuGetFeed.Logging
         private LogManager()
         {
         }
+
         public ILogger ConsoleLogger { get; } = new ConsoleLogger();
         public ILogger FileLogger { get; } = new FileLogger();
+
+        public static LogManager Current { get; } = new LogManager();
 
         public void Error(string message)
         {
@@ -33,7 +36,5 @@ namespace OctopusDeployNuGetFeed.Logging
             FileLogger.Debug(message);
 #endif
         }
-
-        public static LogManager Current { get; } = new LogManager();
     }
 }

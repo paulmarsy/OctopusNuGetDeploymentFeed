@@ -20,19 +20,14 @@ namespace OctopusDeployNuGetFeed.Controllers
     [Authorize]
     public class NuGetODataController : ODataController
     {
+        private const int MaxPageSize = 25;
         private readonly ILogger _logger = Startup.Logger;
 
-        private readonly int _maxPageSize = 25;
         private readonly IServerPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
-
 
         // GET /Packages(Id=,Version=)
         [HttpGet]
-        public virtual async Task<IHttpActionResult> Get(
-            ODataQueryOptions<ODataPackage> options,
-            string id,
-            string version,
-            CancellationToken token)
+        public async Task<IHttpActionResult> Get(ODataQueryOptions<ODataPackage> options, string id, string version, CancellationToken token)
         {
             _logger.Info($"NuGetODataController.Get: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
@@ -43,40 +38,31 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (package == null)
                 return NotFound();
 
-            return TransformToQueryResult(options, new[] {package}, ClientCompatibility.Max)
-                .FormattedAsSingleResult<ODataPackage>();
+            return TransformToQueryResult(options, new[] {package}, ClientCompatibility.Max).FormattedAsSingleResult<ODataPackage>();
         }
 
         // GET/POST /FindPackagesById()?id=
         [HttpGet]
         [HttpPost]
-        public virtual async Task<IHttpActionResult> FindPackagesById(
-            ODataQueryOptions<ODataPackage> options,
-            [FromODataUri] string id,
-            [FromUri] string semVerLevel = "",
-            CancellationToken token = default(CancellationToken))
+        public async Task<IHttpActionResult> FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
             _logger.Info($"NuGetODataController.FindPackagesById: {Request.RequestUri}");
-
-            if (string.IsNullOrEmpty(id))
-            {
-                var emptyResult = Enumerable.Empty<ODataPackage>().AsQueryable();
-                return QueryResult(options, emptyResult, _maxPageSize);
-            }
-
-            var clientCompatibility = ClientCompatibilityFactory.FromProperties(semVerLevel);
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
+            if (string.IsNullOrEmpty(id))
+                return QueryResult(options, Enumerable.Empty<ODataPackage>().AsQueryable(), MaxPageSize);
+
             var sourceQuery = await serverRepository.GetProjectReleasesAsync(id, token);
-            return TransformToQueryResult(options, sourceQuery, clientCompatibility);
+
+            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel));
         }
 
 
         // GET /Packages(Id=,Version=)/propertyName
         [HttpGet]
-        public virtual IHttpActionResult GetPropertyFromPackages(string propertyName, string id, string version)
+        public IHttpActionResult GetPropertyFromPackages(string propertyName, string id, string version)
         {
             _logger.Info($"NuGetODataController.GetPropertyFromPackages: {Request.RequestUri}");
 
@@ -84,74 +70,45 @@ namespace OctopusDeployNuGetFeed.Controllers
             {
                 case "id": return Ok(id);
                 case "version": return Ok(version);
+                default: return BadRequest($"Querying property {propertyName} is not supported.");
             }
-
-            return BadRequest("Querying property " + propertyName + " is not supported.");
         }
 
         // GET/POST /Search()?searchTerm=&targetFramework=&includePrerelease=
         [HttpGet]
         [HttpPost]
-        public virtual async Task<IHttpActionResult> Search(
-            ODataQueryOptions<ODataPackage> options,
-            [FromODataUri] string searchTerm = "",
-            [FromODataUri] string targetFramework = "",
-            [FromODataUri] bool includePrerelease = false,
-            [FromODataUri] bool includeDelisted = false,
-            [FromUri] string semVerLevel = "",
-            CancellationToken token = default(CancellationToken))
+        public async Task<IHttpActionResult> Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
             _logger.Info($"NuGetODataController.Search: {Request.RequestUri}");
-
-            var clientCompatibility = ClientCompatibilityFactory.FromProperties(semVerLevel);
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
             var sourceQuery = await serverRepository.FindProjectsAsync(searchTerm, token);
 
-            return TransformToQueryResult(options, sourceQuery, clientCompatibility);
+            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel));
         }
 
         // GET /Search()/$count?searchTerm=&targetFramework=&includePrerelease=
         [HttpGet]
-        public virtual async Task<IHttpActionResult> SearchCount(
-            ODataQueryOptions<ODataPackage> options,
-            [FromODataUri] string searchTerm = "",
-            [FromODataUri] string targetFramework = "",
-            [FromODataUri] bool includePrerelease = false,
-            [FromODataUri] bool includeDelisted = false,
-            [FromUri] string semVerLevel = "",
-            CancellationToken token = default(CancellationToken))
+        public async Task<IHttpActionResult> SearchCount(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
             _logger.Info($"NuGetODataController.SearchCount: {Request.RequestUri}");
+            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            if (!serverRepository.IsAuthenticated)
+                return StatusCode(HttpStatusCode.Forbidden);
 
-            var searchResults = await Search(
-                options,
-                searchTerm,
-                targetFramework,
-                includePrerelease,
-                includeDelisted,
-                semVerLevel,
-                token);
+            var sourceQuery = await serverRepository.FindProjectsAsync(searchTerm, token);
 
-            return searchResults.FormattedAsCountResult<ODataPackage>();
+            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel))
+                .FormattedAsCountResult<ODataPackage>();
         }
 
 
-        /// <summary>
-        ///     Exposed as OData Action for specific entity
-        ///     GET/HEAD /Packages(Id=,Version=)/Download
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="version"></param>
-        /// <returns></returns>
+        // Exposed as OData Action for specific entity GET/HEAD /Packages(Id=,Version=)/Download
         [HttpGet]
         [HttpHead]
-        public virtual async Task<HttpResponseMessage> Download(
-            string id,
-            string version = "",
-            CancellationToken token = default(CancellationToken))
+        public async Task<HttpResponseMessage> Download(string id, string version = "", CancellationToken token = default(CancellationToken))
         {
             _logger.Info($"NuGetODataController.Download: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
@@ -159,7 +116,6 @@ namespace OctopusDeployNuGetFeed.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
 
             var requestedPackage = await serverRepository.GetProjectReleaseAsync(id, version, token);
-
             if (requestedPackage == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, $"'Package {id} {version}' Not found.");
 
@@ -184,21 +140,14 @@ namespace OctopusDeployNuGetFeed.Controllers
             return responseMessage;
         }
 
-        protected virtual IHttpActionResult QueryResult<TModel>(ODataQueryOptions<TModel> options, IQueryable<TModel> queryable, int maxPageSize)
+        private IHttpActionResult QueryResult<TModel>(ODataQueryOptions<TModel> options, IQueryable<TModel> queryable, int maxPageSize)
         {
             return new QueryResult<TModel>(options, queryable, this, maxPageSize);
         }
 
-        protected virtual IHttpActionResult TransformToQueryResult(
-            ODataQueryOptions<ODataPackage> options,
-            IEnumerable<IServerPackage> sourceQuery,
-            ClientCompatibility compatibility)
+        private IHttpActionResult TransformToQueryResult(ODataQueryOptions<ODataPackage> options, IEnumerable<IServerPackage> sourceQuery, ClientCompatibility compatibility)
         {
-            var transformedQuery = sourceQuery
-                .Distinct()
-                .Select(x => x.AsODataPackage(compatibility))
-                .AsQueryable();
-            return QueryResult(options, transformedQuery, _maxPageSize);
+            return QueryResult(options, sourceQuery.Distinct().Select(x => x.AsODataPackage(compatibility)).AsQueryable(), MaxPageSize);
         }
     }
 }
