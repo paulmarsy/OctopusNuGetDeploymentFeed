@@ -9,20 +9,9 @@ namespace OctopusDeployNuGetFeed.DataServices
 {
     public static class PackageExtensions
     {
-        public static string GetHash(this IServerPackage package, string hashAlgorithm)
-        {
-            return package.GetHash(new CryptoHashProvider(hashAlgorithm));
-        }
+     
 
-        private static string GetHash(this IServerPackage package, IHashProvider hashProvider)
-        {
-            using (var stream = package.GetStream())
-            {
-                return Convert.ToBase64String(hashProvider.CalculateHash(stream));
-            }
-        }
-
-        public static ODataPackage AsODataPackage(this IServerPackage package, ClientCompatibility compatibility)
+        public static ODataPackage AsODataPackage(this INuGetPackage package, ClientCompatibility compatibility)
         {
             return new ODataPackage
             {

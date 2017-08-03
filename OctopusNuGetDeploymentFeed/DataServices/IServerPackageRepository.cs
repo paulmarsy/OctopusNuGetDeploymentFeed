@@ -9,9 +9,9 @@ namespace OctopusDeployNuGetFeed.DataServices
         bool IsAuthenticated { get; }
         string BaseUri { get; }
         string ApiKey { get; }
-        Task<IEnumerable<IServerPackage>> GetProjectReleasesAsync(string id, CancellationToken token);
-        Task<IServerPackage> GetProjectReleaseAsync(string id, string version, CancellationToken token);
+        IEnumerable<INuGetPackage> FindOctopusReleasePackages(string name, CancellationToken token);
+        IDownloadableNuGetPackage GetOctopusReleasePackage(string name, string version, CancellationToken token);
+        IEnumerable<INuGetPackage> FindOctopusProjectPackages(string searchTerm, CancellationToken token);
 
-        Task<IEnumerable<IServerPackage>> FindProjectsAsync(string searchTerm, CancellationToken token);
     }
 }

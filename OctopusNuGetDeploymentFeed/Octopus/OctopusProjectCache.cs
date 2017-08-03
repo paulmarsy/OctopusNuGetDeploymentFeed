@@ -1,73 +1,108 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.Infrastructure;
 using OctopusDeployNuGetFeed.Logging;
+using SemanticVersion = NuGet.SemanticVersion;
 
 namespace OctopusDeployNuGetFeed.Octopus.ProjectCache
 {
-    public class OctopusProjectCache : BaseOctopusRepository, IDisposable
+    public class OctopusProjectCache : BaseOctopusRepository
     {
         private readonly ILogger _logger;
-        private readonly Timer _timer;
-        private IReadOnlyCollection<ProjectResource> _projects;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+
 
         public OctopusProjectCache(string baseUri, string apiKey, ILogger logger) : base(baseUri, apiKey)
         {
+            _cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(new MemoryCacheOptions
+            {
+                CompactOnMemoryPressure = true,
+                ExpirationScanFrequency = TimeSpan.FromMinutes(10)
+            });
             _logger = logger;
-            UpdateCache();
-            _timer = new Timer(TimerHandler, null, MilliSecondsLeftTilTheHour(), Timeout.Infinite);
         }
 
-        public IEnumerable<ProjectResource> Projects => _projects;
 
-        public void Dispose()
+        public ProjectResource GetProject(string name)
         {
-            _timer?.Dispose();
+            if (_cache.TryGetValue(name, out ProjectResource project))
+                return project;
+
+            return GetAllProjects().SingleOrDefault(currentProject => string.Equals(currentProject.Name, name, StringComparison.OrdinalIgnoreCase));
         }
+        private readonly object _allProjectSyncLock = new object();
 
-        private void TimerHandler(object state)
+        public IEnumerable<ProjectResource> GetAllProjects()
         {
-            UpdateCache();
-            _timer.Change(MilliSecondsLeftTilTheHour(), Timeout.Infinite);
-        }
-
-        private void UpdateCache()
-        {
-            try
+            const string projectListCacheKey = "Projects-All";
+            if (!_cache.TryGetValue(projectListCacheKey, out IEnumerable<ProjectResource> projects))
             {
-                _logger.Info("Refreshing cache...");
-                var projects = Client.Repository.Projects.GetAll().GetAwaiter().GetResult().AsReadOnly();
-                Interlocked.Exchange(ref _projects, projects);
-                _logger.Info("Cache updated");
+                lock (_allProjectSyncLock)
+                {
+                    projects = _cache.GetOrCreate(projectListCacheKey, entry =>
+                    {
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15);
+                        return Client.Repository.Projects.GetAll().GetAwaiter().GetResult();
+                    });
+                }
             }
-            catch (Exception e)
+            foreach (var project in projects)
+                yield return _cache.Set(project.Name, project, new MemoryCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromHours(1)
+                });
+        }
+
+        public ChannelResource GetChannel(string channelId)
+        {
+            return _cache.GetOrCreate(channelId, entry =>
             {
-                _logger.Error($"OctopusProjectCache.TimerHandler: {e.Message}. {e.InnerException?.Message}\n{e.StackTrace}");
+                entry.SlidingExpiration = TimeSpan.FromHours(2);
+                return Client.Repository.Channels.Get(channelId).GetAwaiter().GetResult();
+            });
+        }
+
+        public IEnumerable<ReleaseResource> ListReleases(ProjectResource project)
+        {
+            foreach (var release in Client.Repository.Projects.GetReleases(project).GetAwaiter().GetResult().Items)
+            {
+                var cacheKey = GetReleaseCacheKey(project, release.Version);
+                if (cacheKey == null)
+                    continue;
+                
+                yield return _cache.Set(cacheKey, release, TimeSpan.FromHours(1));
             }
         }
 
-        private static int MilliSecondsLeftTilTheHour()
+        private string GetReleaseCacheKey(ProjectResource project, string version)
         {
-            var now = DateTime.Now;
-            var interval = ((59 - now.Minute) * 60 + 59 - now.Second) * 1000;
-
-            if (interval == 0)
-                interval = 60 * 60 * 1000;
-
-            return interval;
+            if (!NuGet.SemanticVersion.TryParse(version, out NuGet.SemanticVersion semver))
+            {
+                _logger.Warning($"GetReleaseCacheKey.SemanticVersion.TryParse: {project.Name} ({project.Id}) {version}");
+                return null;
+            }
+            return $"{project.Id}-{semver.ToNormalizedString()}";
         }
 
-        public ProjectResource GetProjectByName(string name)
+        public ReleaseResource GetRelease(ProjectResource project, string version)
         {
-            return Projects.SingleOrDefault(project => string.Equals(project.Name, name, StringComparison.OrdinalIgnoreCase));
-        }
+            if (_cache.TryGetValue(GetReleaseCacheKey(project, version), out ReleaseResource release))
+                return release;
 
-        public IEnumerable<ProjectResource> FindProjects(string searchTerm)
-        {
-            return Projects.Where(project => project.Name.WildcardMatch($"*{searchTerm}*"));
+            return ListReleases(project).SingleOrDefault(package =>
+            {
+                var semver = NuGet.SemanticVersion.Parse(version);
+                return string.Equals(version, semver.ToOriginalString(), StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(version, semver.ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(version, semver.ToFullString(), StringComparison.OrdinalIgnoreCase);
+            });
+
         }
     }
 }

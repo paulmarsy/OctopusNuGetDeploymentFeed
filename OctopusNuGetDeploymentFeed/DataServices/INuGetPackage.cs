@@ -5,7 +5,11 @@ using NuGet;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
-    public interface IServerPackage
+    public interface IDownloadableNuGetPackage : INuGetPackage
+    {
+        Stream GetStream();
+    }
+    public interface INuGetPackage
     {
         string Id { get; }
         SemanticVersion Version { get; }
@@ -34,6 +38,5 @@ namespace OctopusDeployNuGetFeed.DataServices
         DateTimeOffset Created { get; }
         bool IsLatestVersion { get; }
         bool IsAbsoluteLatestVersion { get; }
-        Stream GetStream();
     }
 }
