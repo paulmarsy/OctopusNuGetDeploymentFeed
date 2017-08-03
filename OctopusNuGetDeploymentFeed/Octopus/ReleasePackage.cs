@@ -53,10 +53,10 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return string.IsNullOrWhiteSpace(ReleaseNotes)
                 ? null
-                : $"_Release Notes_\n\n" +
-                  $"```\n" +
+                : "_Release Notes_\n\n" +
+                  "```\n" +
                   $"{ReleaseNotes.Trim('`')}\n" +
-                  $"```";
+                  "```";
         }
 
         private string GetDescriptionSelectedPackages()
