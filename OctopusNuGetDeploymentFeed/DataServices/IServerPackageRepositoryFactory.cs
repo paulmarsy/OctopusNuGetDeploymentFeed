@@ -1,5 +1,5 @@
 using System.Security.Principal;
-using OctopusDeployNuGetFeed.Octopus.ProjectCache;
+using OctopusDeployNuGetFeed.Octopus;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
@@ -12,6 +11,5 @@ namespace OctopusDeployNuGetFeed.DataServices
         IEnumerable<INuGetPackage> FindOctopusReleasePackages(string name, CancellationToken token);
         IDownloadableNuGetPackage GetOctopusReleasePackage(string name, string version, CancellationToken token);
         IEnumerable<INuGetPackage> FindOctopusProjectPackages(string searchTerm, CancellationToken token);
-
     }
 }

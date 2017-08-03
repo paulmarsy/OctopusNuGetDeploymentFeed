@@ -9,8 +9,6 @@ namespace OctopusDeployNuGetFeed.DataServices
 {
     public static class PackageExtensions
     {
-     
-
         public static ODataPackage AsODataPackage(this INuGetPackage package, ClientCompatibility compatibility)
         {
             return new ODataPackage

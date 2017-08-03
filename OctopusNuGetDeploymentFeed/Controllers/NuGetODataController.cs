@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.OData;
 using System.Web.Http.OData.Query;
@@ -117,7 +116,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         // Exposed as OData Action for specific entity GET/HEAD /Packages(Id=,Version=)/Download
         [HttpGet]
         [HttpHead]
-        public  HttpResponseMessage Download(string id, string version = "", CancellationToken token = default(CancellationToken))
+        public HttpResponseMessage Download(string id, string version = "", CancellationToken token = default(CancellationToken))
         {
             _logger.Info($"NuGetODataController.Download: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);

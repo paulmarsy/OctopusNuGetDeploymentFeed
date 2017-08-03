@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Security.Principal;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
-using OctopusDeployNuGetFeed.Octopus.ProjectCache;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {

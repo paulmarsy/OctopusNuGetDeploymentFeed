@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using NuGet;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
-    public interface IDownloadableNuGetPackage : INuGetPackage
-    {
-        Stream GetStream();
-    }
     public interface INuGetPackage
     {
         string Id { get; }

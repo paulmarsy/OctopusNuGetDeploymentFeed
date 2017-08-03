@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using NuGet;
-using OctopusDeployNuGetFeed.DataServices;
 
 namespace OctopusDeployNuGetFeed.Infrastructure
 {
@@ -13,6 +12,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         {
             return Regex.IsMatch(input, $"^{Regex.Escape(pattern).Replace("\\?", ".").Replace("\\*", ".*")}$", RegexOptions.IgnoreCase);
         }
+
         public static string GetHash(this string input, string hashAlgorithm)
         {
             return input.GetHash(new CryptoHashProvider(hashAlgorithm));
@@ -22,6 +22,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         {
             return Convert.ToBase64String(hashProvider.CalculateHash(Encoding.UTF8.GetBytes(input)));
         }
+
         public static string GetHash(this Stream stream, string hashAlgorithm)
         {
             return stream.GetHash(new CryptoHashProvider(hashAlgorithm));
@@ -29,7 +30,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 
         private static string GetHash(this Stream stream, IHashProvider hashProvider)
         {
-                return Convert.ToBase64String(hashProvider.CalculateHash(stream));
+            return Convert.ToBase64String(hashProvider.CalculateHash(stream));
         }
     }
 }
