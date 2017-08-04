@@ -24,7 +24,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         private const int MaxPageSize = 25;
         private readonly ILogger _logger = Startup.Logger;
 
-        private readonly IServerPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
+        private readonly IPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
 
         protected override ExceptionResult InternalServerError(Exception exception)
         {

@@ -1,24 +1,25 @@
+using System;
 using Octopus.Client;
+using OctopusDeployNuGetFeed.DataServices;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
-    public abstract class BaseOctopusRepository
+    public class OctopusServer :IOctopusServer
     {
-        private IOctopusAsyncClient _client;
+        private IHttpOctopusClient _client;
+        private IOctopusRepository _repository;
+        private readonly Lazy<OctopusServerEndpoint> _endpoint;
 
-        private OctopusServerEndpoint _endpoint;
-
-        protected BaseOctopusRepository(string baseUri, string apiKey)
+        public OctopusServer(string baseUri, string apiKey)
         {
-            BaseUri = baseUri;
-            ApiKey = apiKey;
+            _endpoint = new Lazy<OctopusServerEndpoint>(() => new OctopusServerEndpoint(baseUri, apiKey));
         }
 
 
-        internal OctopusServerEndpoint Endpoint => _endpoint ?? (_endpoint = new OctopusServerEndpoint(BaseUri, ApiKey));
-        internal IOctopusAsyncClient Client => _client ?? (_client = OctopusAsyncClient.Create(Endpoint).GetAwaiter().GetResult());
-        public string BaseUri { get; }
-        public string ApiKey { get; }
+        internal IHttpOctopusClient Client => _client ?? (_client = new OctopusClient(_endpoint.Value));
+        internal IOctopusRepository Repository => _repository ?? (_repository = new OctopusRepository(Client));
+        public string BaseUri => _endpoint.Value.OctopusServer.ToString();
+        public string ApiKey => _endpoint.Value.ApiKey;
 
         public bool IsAuthenticated
         {
@@ -26,10 +27,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 try
                 {
-                    if (string.IsNullOrWhiteSpace(BaseUri) || string.IsNullOrWhiteSpace(ApiKey))
-                        return false;
-
-                    return Endpoint != null && Client != null;
+                    return Repository.Client.RefreshRootDocument() != null;
                 }
                 catch
                 {

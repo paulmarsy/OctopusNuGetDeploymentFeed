@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Text;
 using System.Web.Http;
+using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Controllers
@@ -15,9 +16,17 @@ namespace OctopusDeployNuGetFeed.Controllers
             _logger.Info($"DefaultController.Get: {uri}");
             return ResponseMessage(new HttpResponseMessage(HttpStatusCode.NotFound)
             {
-                Content = new StringContent($"404: {uri}\nNuGet Feed Endpoint: {Startup.BaseAddress}nuget", Encoding.UTF8, "text/plain"),
+                Content = new StringContent($"404: {uri}\n" +
+                                            $"NuGet Feed Endpoint: {Startup.BaseAddress}nuget\n", Encoding.UTF8, "text/plain"),
                 RequestMessage = Request
             });
+        }
+
+        public IHttpActionResult Index()
+        {
+            return new PlainTextResult("Octopus - NuGet Deployment Feed\n" +
+                                       "by Paul Marston\n" +
+                                       "https://github.com/paulmarsy/OctopusNuGetDeploymentFeed", Request);
         }
     }
 }

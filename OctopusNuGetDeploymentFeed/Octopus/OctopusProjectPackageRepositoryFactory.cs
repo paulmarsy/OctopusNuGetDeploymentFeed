@@ -8,31 +8,50 @@ using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
-    public class OctopusProjectPackageRepositoryFactory : IServerPackageRepositoryFactory
+    public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly IDictionary<(string baseUrl, string apiKey), OctopusProjectCache> _cacheRegistry = new ConcurrentDictionary<(string, string), OctopusProjectCache>();
+        private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
         private readonly ILogger _logger = Startup.Logger;
 
-        public IServerPackageRepository GetPackageRepository(IPrincipal user)
+        public IPackageRepository GetPackageRepository(IPrincipal user)
+        {
+            var context = GetOctopusContext(user);
+
+            if (!_repositories.ContainsKey(context))
+            {
+                lock (_repositories)
+                {
+                    CreateOctopusRepository(context);
+                }
+            }
+
+            return _repositories[context];
+        }
+
+        private static (string baseUrl, string apiKey) GetOctopusContext(IPrincipal user)
         {
             var claimsPrincipal = user as ClaimsPrincipal;
             var baseUri = claimsPrincipal?.Claims.SingleOrDefault(claim => claim.Type == ClaimTypes.Uri)?.Value;
             var apiKey = claimsPrincipal?.Claims.SingleOrDefault(claim => claim.Type == ClaimTypes.UserData)?.Value;
-            _logger.Info($"GetPackageRepository baseUri: {baseUri} apiKey: {apiKey}");
 
-            return new OctopusProjectPackageRepository(baseUri, apiKey, _logger, this);
+            return (baseUri, apiKey);
         }
 
-        public OctopusProjectCache GetPackageCache(IServerPackageRepository repository)
+        public void CreateOctopusRepository((string baseUrl, string apiKey) context)
         {
-            lock (_cacheRegistry)
-            {
-                var key = (repository.BaseUri, repository.ApiKey);
-                if (!_cacheRegistry.ContainsKey(key))
-                    _cacheRegistry[key] = new OctopusProjectCache(repository.BaseUri, repository.ApiKey, _logger);
+            if (_repositories.ContainsKey(context))
+                return;
 
-                return _cacheRegistry[key];
-            }
+                var server = new OctopusServer(context.baseUrl, context.apiKey);
+
+            var authenticated = server.IsAuthenticated;
+            _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
+            if (!server.IsAuthenticated)
+                return;
+      
+            var cache = new OctopusCache(_logger, server);
+            var repository = new OctopusPackageRepository(_logger, server, cache);
+            _repositories[context] = repository;
         }
     }
 }

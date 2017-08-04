@@ -16,11 +16,11 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// </summary>
     public class SearchPackage : INuGetPackage, IPackageMetadata
     {
-        public SearchPackage(ILogger logger, OctopusProjectPackageRepository server, ProjectResource project) : this(logger, server, project, new SemanticVersion(1, 0, 0, 0))
+        public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project) : this(logger, server, project, new SemanticVersion(1, 0, 0, 0))
         {
         }
 
-        public SearchPackage(ILogger logger, OctopusProjectPackageRepository server, ProjectResource project, SemanticVersion version)
+        public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project, SemanticVersion version)
         {
             Logger = logger;
             Server = server;
@@ -30,7 +30,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         }
 
         protected ILogger Logger { get; }
-        protected OctopusProjectPackageRepository Server { get; }
+        protected IOctopusServer Server { get; }
 
         protected ProjectResource Project { get; }
 

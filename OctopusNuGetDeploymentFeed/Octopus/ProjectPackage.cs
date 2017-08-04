@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NuGet;
 using Octopus.Client.Model;
+using OctopusDeployNuGetFeed.DataServices;
 using ILogger = OctopusDeployNuGetFeed.Logging.ILogger;
 using SemanticVersion = NuGet.SemanticVersion;
 
@@ -12,7 +13,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// </summary>
     public class ProjectPackage : SearchPackage, IPackageMetadata
     {
-        public ProjectPackage(ILogger logger, OctopusProjectPackageRepository server, ProjectResource project, ReleaseResource release, bool isLatest) : base(logger, server, project, SemanticVersion.Parse(release.Version))
+        public ProjectPackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, bool isLatest) : base(logger, server, project, SemanticVersion.Parse(release.Version))
         {
             Release = release;
             IsLatestVersion = isLatest;

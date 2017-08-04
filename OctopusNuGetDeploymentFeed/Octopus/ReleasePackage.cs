@@ -29,7 +29,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             DeployConfig = GetResourceBytes(assembly, "deploy.config");
         }
 
-        public ReleasePackage(ILogger logger, OctopusProjectPackageRepository server, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
+        public ReleasePackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
         {
             Channel = channel;
         }
@@ -129,10 +129,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private void GetResourceJson(Resource resource, Stream destStream)
         {
-            using (var sourceStream = Server.Client.GetContent(resource.Link("Self")).GetAwaiter().GetResult())
-            {
-                sourceStream.CopyTo(destStream);
-            }
+       
         }
     }
 }

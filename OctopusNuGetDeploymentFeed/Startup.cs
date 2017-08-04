@@ -18,26 +18,32 @@ namespace OctopusDeployNuGetFeed
         public static readonly ILogger Logger = LogManager.Current;
 
         public static string BaseAddress => $"http://{Program.Host}:{Program.Port}/";
-        public static IServerPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusProjectPackageRepositoryFactory();
+        public static IPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusPackageRepositoryFactory();
 
         public IDisposable App { get; private set; }
 
         public void Configuration(IAppBuilder appBuilder)
         {
+            appBuilder.Use<GlobalExceptionMiddleware>();
+            appBuilder.Use<BasicAuthentication>();
+
             var config = new HttpConfiguration();
+
+            config.Routes.MapHttpRoute(
+                "HomePage",
+                "",
+                new { controller = "Default",action= "Index"});
+
             config.UseNuGetV2WebApiFeed(
                 "OctopusNuGetDeploymentFeed",
                 "nuget",
                 "NuGetOData");
-            Logger.Info($"NuGet V2 WebApi Feed {BaseAddress}nuget");
 
             config.Routes.MapHttpRoute(
                 "ResourceNotFound",
                 "{*uri}",
                 new {controller = "Default", uri = RouteParameter.Optional});
 
-            appBuilder.Use<GlobalExceptionMiddleware>();
-            appBuilder.Use<BasicAuthentication>();
             appBuilder.UseWebApi(config);
         }
 

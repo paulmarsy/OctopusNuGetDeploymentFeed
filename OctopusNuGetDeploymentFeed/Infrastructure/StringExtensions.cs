@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using NuGet;
+using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Infrastructure
 {
@@ -31,6 +33,15 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         private static string GetHash(this Stream stream, IHashProvider hashProvider)
         {
             return Convert.ToBase64String(hashProvider.CalculateHash(stream));
+        }
+
+        public static SemanticVersion ToSemanticVersion(this string version,[CallerFilePath]string callerFilePath = null, [CallerMemberName]string callerMemberName = null)
+        {
+            var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
+            if (!SemanticVersion.TryParse(version, out SemanticVersion semver))
+                LogManager.Current.Warning($"{callerTypeName}.{callerMemberName} Unable to convert to Semantic Version from: {version}");
+
+            return semver;
         }
     }
 }
