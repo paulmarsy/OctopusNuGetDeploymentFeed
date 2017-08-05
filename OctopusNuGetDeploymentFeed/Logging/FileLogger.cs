@@ -11,8 +11,19 @@ namespace OctopusDeployNuGetFeed.Logging
     {
         private static readonly string RootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private static readonly string LogFileNameTemplate = $"{Assembly.GetExecutingAssembly().GetName().Name}.{{0:yyyy-MM-dd}}.log";
+        private readonly ConsoleLogger _consoleLogger;
+
+        public FileLogger(ConsoleLogger consoleLogger)
+        {
+            _consoleLogger = consoleLogger;
+        }
 
         private static string LogFile => Path.Combine(RootPath, string.Format(LogFileNameTemplate, DateTime.Now));
+
+        public void Critical(string message)
+        {
+            WriteLogFile(message, "CRITICAL");
+        }
 
         public void Error(string message)
         {
@@ -44,7 +55,7 @@ namespace OctopusDeployNuGetFeed.Logging
                 }
         }
 
-        private static void WriteLogFile(string message, string prefix)
+        private void WriteLogFile(string message, string prefix)
         {
             var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
 
@@ -57,7 +68,7 @@ namespace OctopusDeployNuGetFeed.Logging
             }
             catch (Exception e)
             {
-                LogManager.Current.ConsoleLogger.Error($"FileLogger.WriteLogFile: {e.Message}");
+                _consoleLogger.Error($"FileLogger.WriteLogFile: {e.Message}");
             }
         }
     }

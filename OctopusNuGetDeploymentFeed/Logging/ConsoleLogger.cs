@@ -5,6 +5,11 @@ namespace OctopusDeployNuGetFeed.Logging
 {
     public class ConsoleLogger : ILogger
     {
+        public void Critical(string message)
+        {
+            WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "CRITICAL", message);
+        }
+
         public void Error(string message)
         {
             WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "ERROR", message);

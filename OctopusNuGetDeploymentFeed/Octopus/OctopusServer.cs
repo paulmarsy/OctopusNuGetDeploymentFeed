@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
 using Octopus.Client;
 using OctopusDeployNuGetFeed.DataServices;
 
@@ -6,6 +10,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusServer : IOctopusServer
     {
+        private readonly List<(OctopusRequest request, DateTimeOffset startTime, Stopwatch duration)> _dependencyTrackingCache = new List<(OctopusRequest, DateTimeOffset, Stopwatch)>();
         private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private IHttpOctopusClient _client;
         private IOctopusRepository _repository;
@@ -33,6 +38,31 @@ namespace OctopusDeployNuGetFeed.Octopus
                 {
                     return false;
                 }
+            }
+        }
+
+        public void ConfigureAppInsightsDependencyTracking()
+        {
+            _client.SendingOctopusRequest += ClientOnSendingOctopusRequest;
+            _client.ReceivedOctopusResponse += ClientOnReceivedOctopusResponse;
+        }
+
+        private void ClientOnSendingOctopusRequest(OctopusRequest octopusRequest)
+        {
+            lock (_dependencyTrackingCache)
+            {
+                _dependencyTrackingCache.RemoveAll(entry => entry.duration.Elapsed.Minutes > 10);
+                _dependencyTrackingCache.Add((octopusRequest, DateTimeOffset.UtcNow, Stopwatch.StartNew()));
+            }
+        }
+
+        private void ClientOnReceivedOctopusResponse(OctopusResponse octopusResponse)
+        {
+            lock (_dependencyTrackingCache)
+            {
+                var tracker = _dependencyTrackingCache.Single(entry => entry.request == octopusResponse.Request);
+                _dependencyTrackingCache.Remove(tracker);
+                Startup.AppInsights.TelemetryClient.TrackDependency("REST", BaseUri, "Octopus Deploy API", octopusResponse.Location, tracker.startTime, tracker.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
             }
         }
     }

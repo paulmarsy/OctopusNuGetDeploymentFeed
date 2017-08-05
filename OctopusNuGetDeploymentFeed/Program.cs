@@ -11,7 +11,6 @@ namespace OctopusDeployNuGetFeed
         public static string Host { get; private set; } = "+";
         public static int Port { get; private set; } = 80;
         public static string BaseAddress => $"http://{Host}:{Port}/";
-        public static string AppInsightsKey => Environment.GetEnvironmentVariable("AppInsightsInstrumentationKey");
 
         private static int Main(string[] args)
         {

@@ -2,7 +2,6 @@ using System;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
 using ApplicationInsights.OwinExtensions;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Owin;
 using Microsoft.Owin.Hosting;
 using OctopusDeployNuGetFeed;
@@ -20,9 +19,10 @@ namespace OctopusDeployNuGetFeed
     {
         private readonly ILogger _logger = LogManager.Current;
 
-        public static IPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusPackageRepositoryFactory();
+        private IDisposable _webApiApp;
 
-        public IDisposable App { get; private set; }
+        public static IPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusPackageRepositoryFactory();
+        public static AppInsights AppInsights { get; } = new AppInsights();
 
         public void Configuration(IAppBuilder app)
         {
@@ -60,7 +60,7 @@ namespace OctopusDeployNuGetFeed
 #endif
                 }
             });
-            if (!string.IsNullOrWhiteSpace(Program.AppInsightsKey))
+            if (AppInsights.IsEnabled)
                 app.UseApplicationInsights();
 
             app.Use<BasicAuthentication>();
@@ -69,31 +69,20 @@ namespace OctopusDeployNuGetFeed
 
         public void Start()
         {
-            if (!string.IsNullOrWhiteSpace(Program.AppInsightsKey))
-                ConfigureAppInsights(Program.AppInsightsKey);
-
-            _logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
+            AppInsights.Initialize();
 
             _logger.Info($"Host: {Program.Host}");
             _logger.Info($"Port: {Program.Port}");
 
             _logger.Info("Starting WebApp...");
-            App = WebApp.Start<Startup>(Program.BaseAddress);
+            _webApiApp = WebApp.Start<Startup>(Program.BaseAddress);
             _logger.Info($"Listening on {Program.BaseAddress}");
-        }
-
-        private void ConfigureAppInsights(string appInsightsKey)
-        {
-            _logger.Info("Configuring App Insights Telemetry...");
-
-            TelemetryConfiguration.Active.InstrumentationKey = appInsightsKey;
-            TelemetryConfiguration.Active.TelemetryInitializers.Add(new OperationIdTelemetryInitializer());
         }
 
 
         public void Stop()
         {
-            App.Dispose();
+            _webApiApp.Dispose();
         }
     }
 }

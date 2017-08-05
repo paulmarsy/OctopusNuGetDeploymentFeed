@@ -6,6 +6,10 @@ if (![string]::IsNullOrWhiteSpace($AppInsightsKey)) {
     [System.Environment]::SetEnvironmentVariable('AppInsightsInstrumentationKey', $AppInsightsKey, [System.EnvironmentVariableTarget]::Machine)
 }
 
+Write-Host 'Adding Port 80 firewall rule...'
+& netsh.exe advfirewall firewall add rule name="HTTP" dir=in action=allow protocol=TCP localport=80
+if ($LASTEXITCODE -ne 0) { throw "Unable to add HTTP rule to Windows Firewalls" }
+
 $BinaryName = 'OctopusDeployNuGetFeed.exe'
 $InstallDir = 'C:\OctopusDeployNuGetFeed'
 $AppFilePath = Join-Path $InstallDir $BinaryName

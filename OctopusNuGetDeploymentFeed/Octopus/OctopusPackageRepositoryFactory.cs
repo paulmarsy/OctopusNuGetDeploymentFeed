@@ -47,6 +47,8 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (!server.IsAuthenticated)
                 return;
 
+            server.ConfigureAppInsightsDependencyTracking();
+
             var cache = new OctopusCache(_logger, server);
             var repository = new OctopusPackageRepository(_logger, server, cache);
             _repositories[context] = repository;
