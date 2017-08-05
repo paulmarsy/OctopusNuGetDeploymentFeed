@@ -10,13 +10,20 @@ namespace OctopusDeployNuGetFeed
 
         private static int Main(string[] args)
         {
+            var watchdog = new Watchdog(LogManager.Current);
+            if (args.Length == 1 && args[0] == Watchdog.ArgName)
+            {
+                watchdog.Check();
+                return 0;
+            }
+
             return (int) HostFactory.New(c =>
             {
                 c.SetDescription("Octopus Deploy NuGet Deployment Feed");
                 c.SetDisplayName(nameof(OctopusDeployNuGetFeed));
                 c.SetServiceName(nameof(OctopusDeployNuGetFeed));
                 c.RunAsNetworkService();
-                c.StartAutomaticallyDelayed();
+                c.StartAutomatically();
 
                 c.EnableServiceRecovery(recoveryConfiguration =>
                 {
@@ -26,7 +33,7 @@ namespace OctopusDeployNuGetFeed
                     recoveryConfiguration.RestartService(5); // Subsequent failures
                     recoveryConfiguration.SetResetPeriod(1);
                 });
-
+                c.OnException(LogManager.Current.UnhandledException);
                 c.AddCommandLineDefinition("host", host => Host = host);
                 c.AddCommandLineDefinition("port", port => Port = int.Parse(port));
 
@@ -37,7 +44,8 @@ namespace OctopusDeployNuGetFeed
                     s.WhenStopped(service => service.Stop());
                 });
 
-                c.OnException(e => { LogManager.Current.Error($"Unhandled Exception!!: {e?.Message}. {e?.InnerException?.Message}\n{e?.StackTrace}"); });
+                c.AfterInstall(() => watchdog.CreateTask());
+                c.BeforeUninstall(() => watchdog.DeleteTask());
             }).Run();
         }
     }

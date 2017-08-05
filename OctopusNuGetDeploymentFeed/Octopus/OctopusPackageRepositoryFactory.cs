@@ -10,20 +10,18 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
         private readonly ILogger _logger = Startup.Logger;
+        private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
 
         public IPackageRepository GetPackageRepository(IPrincipal user)
         {
             var context = GetOctopusContext(user);
 
             if (!_repositories.ContainsKey(context))
-            {
                 lock (_repositories)
                 {
                     CreateOctopusRepository(context);
                 }
-            }
 
             return _repositories[context];
         }
@@ -42,13 +40,13 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (_repositories.ContainsKey(context))
                 return;
 
-                var server = new OctopusServer(context.baseUrl, context.apiKey);
+            var server = new OctopusServer(context.baseUrl, context.apiKey);
 
             var authenticated = server.IsAuthenticated;
             _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
             if (!server.IsAuthenticated)
                 return;
-      
+
             var cache = new OctopusCache(_logger, server);
             var repository = new OctopusPackageRepository(_logger, server, cache);
             _repositories[context] = repository;

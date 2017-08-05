@@ -10,8 +10,8 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusPackageRepository : IPackageRepository
     {
         private readonly ILogger _logger;
-        private readonly IOctopusServer _server;
         private readonly IOctopusCache _octopusCache;
+        private readonly IOctopusServer _server;
 
         public OctopusPackageRepository(ILogger logger, IOctopusServer server, IOctopusCache octopusCache)
         {
@@ -35,8 +35,10 @@ namespace OctopusDeployNuGetFeed.Octopus
                 return null;
 
             var channel = _octopusCache.GetChannel(release.ChannelId);
+            if (channel == null)
+                return null;
 
-            return new ReleasePackage(_logger, _server, project, release, channel);
+            return new ReleasePackage(_logger, _server, _octopusCache, project, release, channel);
         }
 
         public IEnumerable<INuGetPackage> FindOctopusReleasePackages(string name, CancellationToken token)

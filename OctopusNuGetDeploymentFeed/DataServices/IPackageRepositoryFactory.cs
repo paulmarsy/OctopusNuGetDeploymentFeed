@@ -1,5 +1,4 @@
 using System.Security.Principal;
-using OctopusDeployNuGetFeed.Octopus;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {

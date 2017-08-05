@@ -48,7 +48,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         public bool DevelopmentDependency => false;
 
         public virtual string Description => $"Octopus Project: {Project.Name} ({Project.Id}) {Project.Description}";
-        
+
         public string Summary => Project.Description;
         public virtual string ReleaseNotes => string.Empty;
         public IEnumerable<PackageDependencySet> DependencySets => Enumerable.Empty<PackageDependencySet>();

@@ -1,7 +1,6 @@
-﻿using System.Net;
-using System.Net.Http;
-using System.Text;
+using System;
 using System.Web.Http;
+using System.Web.Http.Results;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 
@@ -13,15 +12,11 @@ namespace OctopusDeployNuGetFeed.Controllers
 
         public IHttpActionResult Get(string uri)
         {
-            _logger.Info($"DefaultController.Get: {uri}");
-            return ResponseMessage(new HttpResponseMessage(HttpStatusCode.NotFound)
-            {
-                Content = new StringContent($"404: {uri}\n" +
-                                            $"NuGet Feed Endpoint: {Startup.BaseAddress}nuget\n", Encoding.UTF8, "text/plain"),
-                RequestMessage = Request
-            });
+            _logger.Info($"DefaultController.404: {uri}");
+            return new RedirectResult(new Uri("/", UriKind.Relative), Request);
         }
 
+        [HttpGet]
         public IHttpActionResult Index()
         {
             return new PlainTextResult("Octopus - NuGet Deployment Feed\n" +

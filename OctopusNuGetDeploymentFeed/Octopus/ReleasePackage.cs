@@ -29,13 +29,17 @@ namespace OctopusDeployNuGetFeed.Octopus
             DeployConfig = GetResourceBytes(assembly, "deploy.config");
         }
 
-        public ReleasePackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
+        public ReleasePackage(ILogger logger, IOctopusServer server, IOctopusCache octopusCache, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
         {
+            Cache = octopusCache;
             Channel = channel;
         }
 
+        protected IOctopusCache Cache { get; }
+
         protected ChannelResource Channel { get; }
         public Uri ReleaseUrl => new Uri(new Uri(Server.BaseUri), Release.Link("Web"));
+        protected byte[] NuGetPackage => _nugetPackage ?? (_nugetPackage = GetNuGetPackage());
 
 
         public override string Description => $"_Project:_ [{Project.Name}]({ProjectUrl}) <br/>\n" +
@@ -47,7 +51,11 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public override long PackageSize => NuGetPackage.Length;
         public override string PackageHash => GetStream().GetHash(Constants.HashAlgorithm);
-        protected byte[] NuGetPackage => _nugetPackage ?? (_nugetPackage = GetNuGetPackage());
+
+        public Stream GetStream()
+        {
+            return new MemoryStream(NuGetPackage);
+        }
 
         private string GetDescriptionReleaseNotes()
         {
@@ -93,9 +101,9 @@ namespace OctopusDeployNuGetFeed.Octopus
                     var manifest = Manifest.Create(this);
                     manifest.Files = new List<ManifestFile>();
 
-                    AddFile(zipArchive, manifest, "project.json", stream => GetResourceJson(Project, stream));
-                    AddFile(zipArchive, manifest, "release.json", stream => GetResourceJson(Release, stream));
-                    AddFile(zipArchive, manifest, "channel.json", stream => GetResourceJson(Channel, stream));
+                    AddFile(zipArchive, manifest, "project.json", stream => GetJson(Project, stream));
+                    AddFile(zipArchive, manifest, "release.json", stream => GetJson(Release, stream));
+                    AddFile(zipArchive, manifest, "channel.json", stream => GetJson(Channel, stream));
                     AddFile(zipArchive, manifest, "server.json", stream => Server.SerializeInto(stream));
                     AddFile(zipArchive, manifest, "deploy.ps1", stream => stream.Write(DeployPs1, 0, DeployPs1.Length));
                     AddFile(zipArchive, manifest, "deploy.config", stream => stream.Write(DeployConfig, 0, DeployConfig.Length));
@@ -107,11 +115,6 @@ namespace OctopusDeployNuGetFeed.Octopus
                 }
                 return memoryStream.ToArray();
             }
-        }
-
-        public Stream GetStream()
-        {
-            return new MemoryStream(NuGetPackage);
         }
 
         private static void AddFile(ZipArchive zipArchive, Manifest manifest, string fileName, Action<Stream> stream)
@@ -127,9 +130,10 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
         }
 
-        private void GetResourceJson(Resource resource, Stream destStream)
+        private void GetJson(Resource resource, Stream stream)
         {
-       
+            var json = Cache.GetJson(resource);
+            stream.Write(json, 0, json.Length);
         }
     }
 }

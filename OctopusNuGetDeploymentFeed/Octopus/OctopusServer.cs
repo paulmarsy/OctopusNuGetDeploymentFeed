@@ -4,11 +4,11 @@ using OctopusDeployNuGetFeed.DataServices;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
-    public class OctopusServer :IOctopusServer
+    public class OctopusServer : IOctopusServer
     {
+        private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private IHttpOctopusClient _client;
         private IOctopusRepository _repository;
-        private readonly Lazy<OctopusServerEndpoint> _endpoint;
 
         public OctopusServer(string baseUri, string apiKey)
         {

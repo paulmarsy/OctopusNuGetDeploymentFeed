@@ -1,32 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using NuGet;
-using Octopus.Client;
 using Octopus.Client.Model;
-using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Infrastructure;
+using OctopusDeployNuGetFeed.Logging;
 using ILogger = OctopusDeployNuGetFeed.Logging.ILogger;
 using MemoryCache = Microsoft.Extensions.Caching.Memory.MemoryCache;
 using SemanticVersion = NuGet.SemanticVersion;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
-    public interface IOctopusCache
-    {
-        ProjectResource GetProject(string name);
-        IEnumerable<ProjectResource> GetAllProjects();
-        ChannelResource GetChannel(string channelId);
-        IEnumerable<ReleaseResource> ListReleases(ProjectResource project);
-        string GetJson(Resource resource);
-        ReleaseResource GetRelease(ProjectResource project, SemanticVersion version);
-    }
-
     public class OctopusCache : IOctopusCache
     {
         private readonly object _allProjectSyncLock = new object();
@@ -35,15 +21,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         private readonly OctopusServer _server;
         private readonly Timer _timer;
 
-        private enum CacheKeyType
-        {
-            JsonDocument,
-            ProjectList,
-            Project,
-            Release,
-            Channel
-        }
-        private static string CacheKey(CacheKeyType type, params string[] id) => type + ':' + string.Join(";", id.Select(x => x.ToLowerInvariant()));
         public OctopusCache(ILogger logger, OctopusServer server)
         {
             _cache = new MemoryCache(new MemoryCacheOptions
@@ -56,50 +33,14 @@ namespace OctopusDeployNuGetFeed.Octopus
             _timer = new Timer(TimerHandler, null, 0, Timeout.Infinite);
         }
 
-        private void TimerHandler(object state)
-        {
-            try
-            {
-                lock (_allProjectSyncLock)
-                {
-                    _cache.Remove(CacheKey(CacheKeyType.ProjectList));
-                    UpdateProjectCache();
-                }
-                _timer.Change(MilliSecondsTilTheHour(), Timeout.Infinite);
-            }
-            catch (Exception e)
-            {
-                _logger.Error($"OctopusCache.TimerHandler: {e.Message}\n{e.StackTrace}");
-            }
-        }
-
-        private static int MilliSecondsTilTheHour()
-       {
-           var now = DateTimeOffset.Now;
-            var minutesRemaining = 59 - now.Minute;
-            var secondsRemaining = 59 - now.Second;
-          var  interval = ((minutesRemaining * 60) + secondsRemaining) * 1000;
-
-            if (interval == 0)
-                interval = 60 * 60 * 1000;
-
-            return interval;
-        }
-
-        private static DateTimeOffset GetNextHourDateTimeOffset()
-        {
-            var now = DateTimeOffset.Now;
-            return now.Date.AddHours(now.Hour).AddHours(1);
-        }
-
-        public string GetJson(Resource resource)
+        public byte[] GetJson(Resource resource)
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.JsonDocument, resource.Id), entry =>
             {
                 entry.Priority = CacheItemPriority.Low;
                 using (var sourceStream = _server.Client.GetContent(resource.Link("Self")))
                 {
-                    return sourceStream.ReadToEnd();
+                    return sourceStream.ReadAllBytes();
                 }
             });
         }
@@ -116,26 +57,11 @@ namespace OctopusDeployNuGetFeed.Octopus
         public IEnumerable<ProjectResource> GetAllProjects()
         {
             if (!_cache.TryGetValue(CacheKey(CacheKeyType.ProjectList), out IList<ProjectResource> projects))
-            {
                 lock (_allProjectSyncLock)
                 {
                     projects = UpdateProjectCache();
                 }
-            }
             return projects;
-        }
-
-        private IList<ProjectResource> UpdateProjectCache() => UpdateProjectCacheImpl().ToList();
-        private IEnumerable<ProjectResource> UpdateProjectCacheImpl()
-        {
-            var expiration = GetNextHourDateTimeOffset();
-
-            foreach (var project in _cache.GetOrCreate(CacheKey(CacheKeyType.ProjectList), entry =>
-            {
-                entry.AbsoluteExpiration = expiration;
-                return _server.Repository.Projects.GetAll();
-            }))
-                yield return _cache.Set(project.Name, project, expiration);
         }
 
         public ChannelResource GetChannel(string channelId)
@@ -170,6 +96,73 @@ namespace OctopusDeployNuGetFeed.Octopus
                        string.Equals(version.ToNormalizedString(), packageVesion.ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
                        string.Equals(version.ToFullString(), packageVesion.ToFullString(), StringComparison.OrdinalIgnoreCase);
             });
+        }
+
+        private static string CacheKey(CacheKeyType type, params string[] id)
+        {
+            return type + ':' + string.Join(";", id.Select(x => x.ToLowerInvariant()));
+        }
+
+        private void TimerHandler(object state)
+        {
+            try
+            {
+                lock (_allProjectSyncLock)
+                {
+                    _cache.Remove(CacheKey(CacheKeyType.ProjectList));
+                    UpdateProjectCache();
+                }
+                _timer.Change(MilliSecondsTilTheHour(), Timeout.Infinite);
+            }
+            catch (Exception e)
+            {
+                LogManager.Current.Exception(e);
+            }
+        }
+
+        private static int MilliSecondsTilTheHour()
+        {
+            var now = DateTimeOffset.Now;
+            var minutesRemaining = 59 - now.Minute;
+            var secondsRemaining = 59 - now.Second;
+            var interval = (minutesRemaining * 60 + secondsRemaining) * 1000;
+
+            if (interval == 0)
+                interval = 60 * 60 * 1000;
+
+            return interval;
+        }
+
+        private static DateTimeOffset GetNextHourDateTimeOffset()
+        {
+            var now = DateTimeOffset.Now;
+            return now.Date.AddHours(now.Hour).AddHours(1);
+        }
+
+        private IList<ProjectResource> UpdateProjectCache()
+        {
+            return UpdateProjectCacheImpl().ToList();
+        }
+
+        private IEnumerable<ProjectResource> UpdateProjectCacheImpl()
+        {
+            var expiration = GetNextHourDateTimeOffset();
+
+            foreach (var project in _cache.GetOrCreate(CacheKey(CacheKeyType.ProjectList), entry =>
+            {
+                entry.AbsoluteExpiration = expiration;
+                return _server.Repository.Projects.GetAll();
+            }))
+                yield return _cache.Set(project.Name, project, expiration);
+        }
+
+        private enum CacheKeyType
+        {
+            JsonDocument,
+            ProjectList,
+            Project,
+            Release,
+            Channel
         }
     }
 }

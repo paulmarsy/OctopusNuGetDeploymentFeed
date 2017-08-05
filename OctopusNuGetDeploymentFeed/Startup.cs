@@ -1,5 +1,6 @@
 using System;
 using System.Web.Http;
+using System.Web.Http.ExceptionHandling;
 using Microsoft.Owin;
 using Microsoft.Owin.Hosting;
 using OctopusDeployNuGetFeed;
@@ -22,17 +23,14 @@ namespace OctopusDeployNuGetFeed
 
         public IDisposable App { get; private set; }
 
-        public void Configuration(IAppBuilder appBuilder)
+        public void Configuration(IAppBuilder app)
         {
-            appBuilder.Use<GlobalExceptionMiddleware>();
-            appBuilder.Use<BasicAuthentication>();
-
             var config = new HttpConfiguration();
 
             config.Routes.MapHttpRoute(
                 "HomePage",
                 "",
-                new { controller = "Default",action= "Index"});
+                new {controller = "Default", action = "Index"});
 
             config.UseNuGetV2WebApiFeed(
                 "OctopusNuGetDeploymentFeed",
@@ -40,16 +38,35 @@ namespace OctopusDeployNuGetFeed
                 "NuGetOData");
 
             config.Routes.MapHttpRoute(
-                "ResourceNotFound",
+                "Default",
                 "{*uri}",
                 new {controller = "Default", uri = RouteParameter.Optional});
 
-            appBuilder.UseWebApi(config);
+
+            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler());
+
+            app
+                .Use(async (ctx, next) =>
+                {
+                    try
+                    {
+                        await next();
+                    }
+                    catch (Exception e)
+                    {
+                        LogManager.Current.UnhandledException(e);
+#if DEBUG
+            throw; 
+#endif
+                    }
+                })
+                .Use<BasicAuthentication>()
+                .UseWebApi(config);
         }
 
         public void Start()
         {
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => LogManager.Current.UnhandledException(args.ExceptionObject as Exception);
             Logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
 
             Logger.Info($"Host: {Program.Host}");
@@ -60,11 +77,6 @@ namespace OctopusDeployNuGetFeed
             Logger.Info($"Listening on {BaseAddress}");
         }
 
-        private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs unhandledExceptionEventArgs)
-        {
-            var excepion = unhandledExceptionEventArgs.ExceptionObject as Exception;
-            Logger.Error($"Unhandled Exception!!: {excepion?.Message}. {excepion?.InnerException?.Message}\n{excepion?.StackTrace}");
-        }
 
         public void Stop()
         {

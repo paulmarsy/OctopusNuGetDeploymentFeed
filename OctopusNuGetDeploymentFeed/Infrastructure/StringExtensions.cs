@@ -35,7 +35,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
             return Convert.ToBase64String(hashProvider.CalculateHash(stream));
         }
 
-        public static SemanticVersion ToSemanticVersion(this string version,[CallerFilePath]string callerFilePath = null, [CallerMemberName]string callerMemberName = null)
+        public static SemanticVersion ToSemanticVersion(this string version, [CallerFilePath] string callerFilePath = null, [CallerMemberName] string callerMemberName = null)
         {
             var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
             if (!SemanticVersion.TryParse(version, out SemanticVersion semver))
