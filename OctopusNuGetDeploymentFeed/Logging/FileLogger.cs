@@ -12,11 +12,6 @@ namespace OctopusDeployNuGetFeed.Logging
         private static readonly string RootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private static readonly string LogFileNameTemplate = $"{Assembly.GetExecutingAssembly().GetName().Name}.{{0:yyyy-MM0-dd}}.log";
 
-        public FileLogger()
-        {
-            Init();
-        }
-
         private static string LogFile => Path.Combine(RootPath, string.Format(LogFileNameTemplate, DateTime.Now));
 
         public void Error(string message)
@@ -38,7 +33,7 @@ namespace OctopusDeployNuGetFeed.Logging
         {
         }
 
-        private void Init()
+        public void Init()
         {
             Info($"Initializing log file: {LogFile}");
             foreach (var logFileToRemove in Directory.GetFiles(RootPath, "*.log", SearchOption.TopDirectoryOnly).OrderByDescending(logFile => logFile).Skip(7))
@@ -55,10 +50,10 @@ namespace OctopusDeployNuGetFeed.Logging
 
         private static void WriteLogFile(string message, string prefix)
         {
+            var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
+
             try
             {
-                var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
-
                 using (var fileStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
                 {
                     fileStream.Write(buffer, 0, buffer.Length);

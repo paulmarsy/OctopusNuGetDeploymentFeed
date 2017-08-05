@@ -18,7 +18,6 @@ namespace OctopusDeployNuGetFeed
     {
         public static readonly ILogger Logger = LogManager.Current;
 
-        public static string BaseAddress => $"http://{Program.Host}:{Program.Port}/";
         public static IPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusPackageRepositoryFactory();
 
         public IDisposable App { get; private set; }
@@ -72,8 +71,8 @@ namespace OctopusDeployNuGetFeed
             Logger.Info($"Port: {Program.Port}");
 
             Logger.Info("Starting WebApp...");
-            App = WebApp.Start<Startup>(BaseAddress);
-            Logger.Info($"Listening on {BaseAddress}");
+            App = WebApp.Start<Startup>(Program.BaseAddress);
+            Logger.Info($"Listening on {Program.BaseAddress}");
         }
 
 
