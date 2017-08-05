@@ -55,9 +55,10 @@ namespace OctopusDeployNuGetFeed.Logging
 
         private static void WriteLogFile(string message, string prefix)
         {
-            var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
             try
             {
+                var buffer = Encoding.UTF8.GetBytes($"{Environment.NewLine}[{DateTime.Now:HH:mm:ss}] {Thread.CurrentThread.ManagedThreadId} {prefix}: {message}");
+
                 using (var fileStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
                 {
                     fileStream.Write(buffer, 0, buffer.Length);

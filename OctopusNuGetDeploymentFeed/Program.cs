@@ -1,4 +1,6 @@
-﻿using OctopusDeployNuGetFeed.Logging;
+﻿using System;
+using System.Reflection;
+using OctopusDeployNuGetFeed.Logging;
 using Topshelf;
 
 namespace OctopusDeployNuGetFeed
@@ -10,10 +12,18 @@ namespace OctopusDeployNuGetFeed
 
         private static int Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) => LogManager.Current.UnhandledException(eventArgs.ExceptionObject as Exception);
+            
             var watchdog = new Watchdog(LogManager.Current);
             if (args.Length == 1 && args[0] == Watchdog.ArgName)
             {
                 watchdog.Check();
+                return 0;
+            }
+            if (args.Length == 1 && args[0] == "version")
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                Console.Write($"{version.Major}.{version.Minor}.{version.Build}");
                 return 0;
             }
 
@@ -25,14 +35,6 @@ namespace OctopusDeployNuGetFeed
                 c.RunAsNetworkService();
                 c.StartAutomatically();
 
-                c.EnableServiceRecovery(recoveryConfiguration =>
-                {
-                    recoveryConfiguration.OnCrashOnly();
-                    recoveryConfiguration.RestartService(1); // First failure
-                    recoveryConfiguration.RestartService(3); // Second failure
-                    recoveryConfiguration.RestartService(5); // Subsequent failures
-                    recoveryConfiguration.SetResetPeriod(1);
-                });
                 c.OnException(LogManager.Current.UnhandledException);
                 c.AddCommandLineDefinition("host", host => Host = host);
                 c.AddCommandLineDefinition("port", port => Port = int.Parse(port));

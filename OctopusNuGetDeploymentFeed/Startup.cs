@@ -66,7 +66,6 @@ namespace OctopusDeployNuGetFeed
 
         public void Start()
         {
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) => LogManager.Current.UnhandledException(args.ExceptionObject as Exception);
             Logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
 
             Logger.Info($"Host: {Program.Host}");
