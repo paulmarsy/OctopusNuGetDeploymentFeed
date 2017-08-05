@@ -5,6 +5,5 @@ namespace OctopusDeployNuGetFeed.Logging
         void Error(string message);
         void Warning(string message);
         void Info(string message);
-        void Debug(string message);
     }
 }

@@ -26,7 +26,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             Server = server;
             Project = project;
             Version = version;
-            Logger.Debug($"{GetType().Name}.ctor: {project.Name} {Version}");
         }
 
         protected ILogger Logger { get; }

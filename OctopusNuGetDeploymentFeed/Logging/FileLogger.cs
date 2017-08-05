@@ -10,7 +10,7 @@ namespace OctopusDeployNuGetFeed.Logging
     public class FileLogger : ILogger
     {
         private static readonly string RootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        private static readonly string LogFileNameTemplate = $"{Assembly.GetExecutingAssembly().GetName().Name}.{{0:yyyy-MM0-dd}}.log";
+        private static readonly string LogFileNameTemplate = $"{Assembly.GetExecutingAssembly().GetName().Name}.{{0:yyyy-MM-dd}}.log";
 
         private static string LogFile => Path.Combine(RootPath, string.Format(LogFileNameTemplate, DateTime.Now));
 
@@ -27,10 +27,6 @@ namespace OctopusDeployNuGetFeed.Logging
         public void Info(string message)
         {
             WriteLogFile(message, "INFO");
-        }
-
-        public void Debug(string message)
-        {
         }
 
         public void Init()

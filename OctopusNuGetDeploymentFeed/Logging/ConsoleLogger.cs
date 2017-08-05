@@ -20,13 +20,6 @@ namespace OctopusDeployNuGetFeed.Logging
             Console.WriteLine(message);
         }
 
-        public void Debug(string message)
-        {
-#if DEBUG
-            WritePrefixLine(ConsoleColor.DarkGray, ConsoleColor.DarkGray, "DEBUG", message);
-#endif
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WritePrefixLine(ConsoleColor prefixColour, ConsoleColor colour, string prefix, string message)
         {

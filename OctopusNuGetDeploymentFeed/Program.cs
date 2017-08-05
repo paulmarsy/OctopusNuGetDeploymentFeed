@@ -11,6 +11,7 @@ namespace OctopusDeployNuGetFeed
         public static string Host { get; private set; } = "+";
         public static int Port { get; private set; } = 80;
         public static string BaseAddress => $"http://{Host}:{Port}/";
+        public static string AppInsightsKey => Environment.GetEnvironmentVariable("AppInsightsInstrumentationKey");
 
         private static int Main(string[] args)
         {
@@ -28,7 +29,6 @@ namespace OctopusDeployNuGetFeed
                 Console.Write($"{version.Major}.{version.Minor}.{version.Build}");
                 return 0;
             }
-
             return (int) HostFactory.New(c =>
             {
                 c.SetDescription("Octopus Deploy NuGet Deployment Feed");
@@ -39,7 +39,7 @@ namespace OctopusDeployNuGetFeed
 
                 c.OnException(LogManager.Current.UnhandledException);
                 c.AddCommandLineDefinition("host", host => Host = host);
-                c.AddCommandLineDefinition("port", port => Port = Int32.Parse(port));
+                c.AddCommandLineDefinition("port", port => Port = int.Parse(port));
 
                 c.Service<Startup>(s =>
                 {

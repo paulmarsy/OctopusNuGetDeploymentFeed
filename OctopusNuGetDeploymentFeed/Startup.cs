@@ -1,6 +1,8 @@
 using System;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
+using ApplicationInsights.OwinExtensions;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Owin;
 using Microsoft.Owin.Hosting;
 using OctopusDeployNuGetFeed;
@@ -16,7 +18,7 @@ namespace OctopusDeployNuGetFeed
 {
     public class Startup
     {
-        public static readonly ILogger Logger = LogManager.Current;
+        private readonly ILogger _logger = LogManager.Current;
 
         public static IPackageRepositoryFactory OctopusProjectPackageRepositoryFactory { get; } = new OctopusPackageRepositoryFactory();
 
@@ -42,37 +44,50 @@ namespace OctopusDeployNuGetFeed
                 new {controller = "Default", uri = RouteParameter.Optional});
 
 
-            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler());
+            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(LogManager.Current));
 
-            app
-                .Use(async (ctx, next) =>
+            app.Use(async (ctx, next) =>
+            {
+                try
                 {
-                    try
-                    {
-                        await next();
-                    }
-                    catch (Exception e)
-                    {
-                        LogManager.Current.UnhandledException(e);
+                    await next();
+                }
+                catch (Exception e)
+                {
+                    LogManager.Current.UnhandledException(e);
 #if DEBUG
-            throw; 
+                    throw;
 #endif
-                    }
-                })
-                .Use<BasicAuthentication>()
-                .UseWebApi(config);
+                }
+            });
+            if (!string.IsNullOrWhiteSpace(Program.AppInsightsKey))
+                app.UseApplicationInsights();
+
+            app.Use<BasicAuthentication>();
+            app.UseWebApi(config);
         }
 
         public void Start()
         {
-            Logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
+            if (!string.IsNullOrWhiteSpace(Program.AppInsightsKey))
+                ConfigureAppInsights(Program.AppInsightsKey);
 
-            Logger.Info($"Host: {Program.Host}");
-            Logger.Info($"Port: {Program.Port}");
+            _logger.Info($"Command line switches: -host:{Program.Host} -port:{Program.Port}");
 
-            Logger.Info("Starting WebApp...");
+            _logger.Info($"Host: {Program.Host}");
+            _logger.Info($"Port: {Program.Port}");
+
+            _logger.Info("Starting WebApp...");
             App = WebApp.Start<Startup>(Program.BaseAddress);
-            Logger.Info($"Listening on {Program.BaseAddress}");
+            _logger.Info($"Listening on {Program.BaseAddress}");
+        }
+
+        private void ConfigureAppInsights(string appInsightsKey)
+        {
+            _logger.Info("Configuring App Insights Telemetry...");
+
+            TelemetryConfiguration.Active.InstrumentationKey = appInsightsKey;
+            TelemetryConfiguration.Active.TelemetryInitializers.Add(new OperationIdTelemetryInitializer());
         }
 
 

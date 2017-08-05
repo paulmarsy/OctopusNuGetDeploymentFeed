@@ -8,7 +8,7 @@ namespace OctopusDeployNuGetFeed.Controllers
 {
     public class DefaultController : ApiController
     {
-        private readonly ILogger _logger = Startup.Logger;
+        private readonly ILogger _logger = LogManager.Current;
 
         public IHttpActionResult Get(string uri)
         {

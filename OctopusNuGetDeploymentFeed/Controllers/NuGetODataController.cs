@@ -20,7 +20,7 @@ namespace OctopusDeployNuGetFeed.Controllers
     public class NuGetODataController : ODataController
     {
         private const int MaxPageSize = 25;
-        private readonly ILogger _logger = Startup.Logger;
+        private readonly ILogger _logger = LogManager.Current;
 
         private readonly IPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
 

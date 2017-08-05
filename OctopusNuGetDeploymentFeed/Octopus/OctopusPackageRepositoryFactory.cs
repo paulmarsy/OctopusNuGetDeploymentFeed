@@ -10,7 +10,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly ILogger _logger = Startup.Logger;
+        private readonly ILogger _logger = LogManager.Current;
         private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
 
         public IPackageRepository GetPackageRepository(IPrincipal user)
