@@ -10,7 +10,6 @@ using System.Web.Http.OData;
 using System.Web.Http.OData.Query;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Infrastructure;
-using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.OData;
 
 namespace OctopusDeployNuGetFeed.Controllers
@@ -20,7 +19,6 @@ namespace OctopusDeployNuGetFeed.Controllers
     public class NuGetODataController : ODataController
     {
         private const int MaxPageSize = 25;
-        private readonly ILogger _logger = LogManager.Current;
 
         private readonly IPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
 
@@ -28,7 +26,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpGet]
         public IHttpActionResult Get(ODataQueryOptions<ODataPackage> options, string id, string version, CancellationToken token)
         {
-            _logger.Info($"NuGetODataController.Get: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
@@ -45,7 +42,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            _logger.Info($"NuGetODataController.FindPackagesById: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
@@ -63,8 +59,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpGet]
         public IHttpActionResult GetPropertyFromPackages(string propertyName, string id, string version)
         {
-            _logger.Info($"NuGetODataController.GetPropertyFromPackages: {Request.RequestUri}");
-
             switch (propertyName.ToLowerInvariant())
             {
                 case "id": return Ok(id);
@@ -78,7 +72,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            _logger.Info($"NuGetODataController.Search: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
@@ -92,7 +85,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpGet]
         public IHttpActionResult SearchCount(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            _logger.Info($"NuGetODataController.SearchCount: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
@@ -109,7 +101,6 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpHead]
         public HttpResponseMessage Download(string id, string version = "", CancellationToken token = default(CancellationToken))
         {
-            _logger.Info($"NuGetODataController.Download: {Request.RequestUri}");
             var serverRepository = _repositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");

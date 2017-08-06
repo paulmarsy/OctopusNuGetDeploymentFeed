@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Management;
 using System.Reflection;
 using ApplicationInsights.OwinExtensions;
 using Microsoft.ApplicationInsights;
@@ -63,8 +65,9 @@ namespace OctopusDeployNuGetFeed
             TelemetryClient.Context.Component.Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             TelemetryClient.Context.Device.Id = Environment.MachineName;
             TelemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.VersionString;
+            TelemetryClient.Context.Device.Type = "Web Server";
         }
-
+        
         private void UseQuickPulse()
         {
             var quickPulseModule = new QuickPulseTelemetryModule();

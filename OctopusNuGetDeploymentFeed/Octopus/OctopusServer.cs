@@ -62,7 +62,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 var tracker = _dependencyTrackingCache.Single(entry => entry.request == octopusResponse.Request);
                 _dependencyTrackingCache.Remove(tracker);
-                Startup.AppInsights.TelemetryClient?.TrackDependency("REST", BaseUri, "Octopus Deploy API", octopusResponse.Location, tracker.startTime, tracker.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
+                Startup.AppInsights.TelemetryClient?.TrackDependency("Octopus Deploy API", BaseUri, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracker.startTime, tracker.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
             }
         }
     }
