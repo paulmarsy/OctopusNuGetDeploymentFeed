@@ -37,7 +37,7 @@ namespace OctopusDeployNuGetFeed.DataServices
                 PackageSize = package.PackageSize,
                 Copyright = package.Copyright,
                 Tags = package.Tags,
-                IsAbsoluteLatestVersion = package.IsAbsoluteLatestVersion,
+                IsAbsoluteLatestVersion = package.IsLatestVersion,
                 IsLatestVersion = package.IsLatestVersion,
                 Listed = package.Listed,
                 VersionDownloadCount = package.DownloadCount,

@@ -116,6 +116,16 @@ namespace OctopusDeployNuGetFeed.Octopus
             });
         }
 
+        public byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory)
+        {
+            return _cache.GetOrCreate(CacheKey(CacheKeyType.NuGetPackage, project.Id, release.Id), entry =>
+            {
+                TrackCacheEvent(CacheKeyType.NuGetPackage, project.Id + ";" + release.Id);
+                entry.SetSlidingExpiration(TimeSpan.FromHours(1));
+                return nugetPackageFactory();
+            });
+        }
+
         private static string CacheKey(CacheKeyType type, params string[] id)
         {
             return type + ':' + string.Join(";", id.Select(x => x.ToLowerInvariant()));
@@ -186,7 +196,8 @@ namespace OctopusDeployNuGetFeed.Octopus
             ProjectList,
             Project,
             Release,
-            Channel
+            Channel,
+            NuGetPackage
         }
     }
 }

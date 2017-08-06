@@ -14,7 +14,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// <summary>
     ///     Light weight package to represent a project used for searching
     /// </summary>
-    public class SearchPackage : INuGetPackage, IPackageMetadata
+    public class SearchPackage : INuGetPackage
     {
         public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project) : this(logger, server, project, new SemanticVersion(1, 0, 0, 0))
         {
@@ -34,7 +34,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         protected ProjectResource Project { get; }
 
         public string Id => Project.Name;
-
         public SemanticVersion Version { get; }
         public string Title => Project.Name;
         public virtual IEnumerable<string> Authors => new[] {Project.LastModifiedBy ?? "Unknown"};
@@ -54,8 +53,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         public string Copyright => "Octopus Deploy NuGet Feed by Paul Marston";
         public string Tags => Project.Id;
         public virtual bool IsLatestVersion => true;
-
-        public bool IsAbsoluteLatestVersion => IsLatestVersion;
         public bool Listed => !Project.IsDisabled;
         public Version MinClientVersion => ClientCompatibility.Default.SemVerLevel.Version;
         public string Language => Thread.CurrentThread.CurrentCulture.DisplayName;
@@ -64,7 +61,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         public string PackageHashAlgorithm => Constants.HashAlgorithm;
         public virtual DateTimeOffset LastUpdated => Project.LastModifiedOn.GetValueOrDefault();
         public virtual DateTimeOffset Created => Project.LastModifiedOn.GetValueOrDefault();
-        string IPackageName.Id => Project.Id.Replace('-', '.');
+      //  string IPackageName.Id => Project.Id.Replace('-', '.');
         public ICollection<PackageReferenceSet> PackageAssemblyReferences => new List<PackageReferenceSet>();
         public IEnumerable<FrameworkAssemblyReference> FrameworkAssemblies => Enumerable.Empty<FrameworkAssemblyReference>();
     }

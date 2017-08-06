@@ -11,7 +11,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// <summary>
     ///     Package to represent the releases in a project
     /// </summary>
-    public class ProjectPackage : SearchPackage, IPackageMetadata
+    public class ProjectPackage : SearchPackage
     {
         public ProjectPackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, bool isLatest) : base(logger, server, project, SemanticVersion.Parse(release.Version))
         {
@@ -23,7 +23,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         public override bool IsLatestVersion { get; }
         public override DateTimeOffset LastUpdated => Release.LastModifiedOn.GetValueOrDefault();
         public override DateTimeOffset Created => Release.Assembled;
-        string IPackageName.Id => Project.Id + '.' + Release.Id;
         public override IEnumerable<string> Authors => new[] {Release.LastModifiedBy ?? "Unknown"};
 
         public override string ReleaseNotes => Release.ReleaseNotes;

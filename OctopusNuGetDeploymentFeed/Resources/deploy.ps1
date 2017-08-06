@@ -2,26 +2,30 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$taskId = [int]$OctopusParameters['Octopus.Task.Id'].Split('-')[1]
-Write-Verbose "Octopus.Task.Id: $taskId"
-$deploymentId = [int]$OctopusParameters['Octopus.Deployment.Id'].Split('-')[1]
-Write-Verbose "Octopus.Deployment.Id: $deploymentId"
-$creationTime = [datetime]::Parse($OctopusParameters['Octopus.Deployment.CreatedUtc']).TimeOfDay.TotalSeconds
-Write-Verbose "Creation Time: $creationTime"
+function Test-IsNominatedDeployer {
+	$taskId = [int]$OctopusParameters['Octopus.Task.Id'].Split('-')[1]
+	Write-Verbose "Octopus.Task.Id: $taskId"
+	$deploymentId = [int]$OctopusParameters['Octopus.Deployment.Id'].Split('-')[1]
+	Write-Verbose "Octopus.Deployment.Id: $deploymentId"
+	$creationTime = [datetime]::Parse($OctopusParameters['Octopus.Deployment.CreatedUtc']).TimeOfDay.TotalSeconds
+	Write-Verbose "Creation Time: $creationTime"
 
-$randomSeed = $taskId + $deploymentId + $creationTime
-Write-Verbose "Random Seed: $randomSeed"
-$rng = [System.Random]::new($randomSeed)
-$actionNumber = [int]$OctopusParameters['Octopus.Action.Number']
-Write-Verbose "Octopus.Action.Number: $actionNumber"
-1..$actionNumber | % { $rng.Next() } | Out-Null
-$machineSet = @($OctopusParameters['Octopus.Action.TargetRoles'] -split ',' | % { $OctopusParameters[('Octopus.Environment.MachinesInRole[{0}]' -f $_)] -split ',' } | Sort-Object -Unique)
-Write-Verbose "Machine Set: $($machineSet -join ', ')"
-$targetMachineId = $machineSet[$rng.Next() % $machineSet.Count]
-Write-Verbose "Target Machine Id: $targetMachineId"
-if ($targetMachineId -ne $OctopusParameters['Octopus.Machine.Id']) {
-	Write-Host "Target machine id ($targetMachineId) does not match this machine ($($OctopusParameters['Octopus.Machine.Id'])), this step will be skipped..."
-	return
+	$randomSeed = $taskId + $deploymentId + $creationTime
+	Write-Verbose "Random Seed: $randomSeed"
+	$rng = [System.Random]::new($randomSeed)
+	$actionNumber = [int]$OctopusParameters['Octopus.Action.Number']
+	Write-Verbose "Octopus.Action.Number: $actionNumber"
+	1..$actionNumber | % { $rng.Next() } | Out-Null
+	$machineSet = @($OctopusParameters['Octopus.Action.TargetRoles'] -split ',' | % { $OctopusParameters[('Octopus.Environment.MachinesInRole[{0}]' -f $_)] -split ',' } | Sort-Object -Unique)
+	Write-Verbose "Machine Set: $($machineSet -join ', ')"
+	$targetMachineId = $machineSet[$rng.Next() % $machineSet.Count]
+	Write-Verbose "Target Machine Id: $targetMachineId"
+	Write-Verbose "This Machine Id: $($OctopusParameters['Octopus.Machine.Id'])"
+	
+	$machineIsNominated = $targetMachineId -ieq $OctopusParameters['Octopus.Machine.Id']
+	Write-Verbose "Machine Is Nominated Deployer: $machineIsNominated"
+	
+	return $machineIsNominated
 }
 
 function Get-DeployConfigSetting {
@@ -669,15 +673,27 @@ function Show-Heading {
     Write-Host " `n"
 }
 
+Write-Host 'Disabling remaining conventions...'
+Set-OctopusVariable -Name 'Octopus.Action.SkipRemainingConventions' -Value 'True'
+
+if (!(Test-IsNominatedDeployer)) {
+	Write-Host "This machine is not the nominated deployer for this step, skipping..."
+	return
+}
+
+$deployScript = $OctopusParameters['Octopus.Action.CustomScripts.Deploy.ps1'] 
+if (Test-String $deployScript) {
+	Show-Heading 'Pre-Deploy Script' 
+	[scriptblock]::Create($deployScript).Invoke()
+}
+
 $deploymentContext = [DeploymentContext]::new($Chain_BaseUrl)
 
+Show-Heading 'Loading Deployment Package'
 Write-Verbose (Get-Content -Path (Join-Path $PSScriptRoot 'deploy.config') -Raw)
-
-Show-Heading 'Retrieving Release'
 $deploymentContext.SetProject()
 $deploymentContext.SetChannel()
 Write-Host "`t$Chain_BaseUrl$($deploymentContext.Project.Links.Web)"
-
 $deploymentContext.SetRelease()
 Write-Host "`t$Chain_BaseUrl$($deploymentContext.Release.Links.Web)"
 if ((Get-DeployConfigSetting "Octopus.Action.SnapshotVariables" "False") -ieq 'True') {
@@ -740,4 +756,10 @@ if ($deploymentControllers | % Task | ? FinishedSuccessfully -eq $false) {
 }
 else {
     Show-Heading 'Deployment Successful!'
+}
+
+$postDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.PostDeploy.ps1'] 
+if (Test-String $postDeployScript) {
+	Show-Heading 'Post-Deploy Script' 
+	[scriptblock]::Create($postDeployScript).Invoke()
 }

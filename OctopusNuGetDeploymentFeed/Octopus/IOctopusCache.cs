@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Octopus.Client.Model;
 using SemanticVersion = NuGet.SemanticVersion;
 
@@ -12,5 +13,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         IEnumerable<ReleaseResource> ListReleases(ProjectResource project);
         byte[] GetJson(Resource resource);
         ReleaseResource GetRelease(ProjectResource project, SemanticVersion version);
+        byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory);
     }
 }

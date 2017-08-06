@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.ApplicationInsights;
 using NuGet;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.DataServices;
@@ -20,7 +21,6 @@ namespace OctopusDeployNuGetFeed.Octopus
     {
         private static readonly byte[] DeployPs1;
         private static readonly byte[] DeployConfig;
-        private byte[] _nugetPackage;
 
         static ReleasePackage()
         {
@@ -33,14 +33,15 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             Cache = octopusCache;
             Channel = channel;
+            _nugetPackage = new Lazy<byte[]>(() => Cache.GetNuGetPackage(project, release, CreateNuGetPackage));
         }
 
         protected IOctopusCache Cache { get; }
 
         protected ChannelResource Channel { get; }
         public Uri ReleaseUrl => new Uri(new Uri(Server.BaseUri), Release.Link("Web"));
-        protected byte[] NuGetPackage => _nugetPackage ?? (_nugetPackage = GetNuGetPackage());
-
+        private readonly Lazy<byte[]> _nugetPackage;
+        protected byte[] NuGetPackage => _nugetPackage.Value;
 
         public override string Description => $"_Project:_ [{Project.Name}]({ProjectUrl}) <br/>\n" +
                                               $"_Release:_ [{Release.Version}]({ReleaseUrl}) <br/>\n" +
@@ -52,10 +53,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         public override long PackageSize => NuGetPackage.Length;
         public override string PackageHash => GetStream().GetHash(Constants.HashAlgorithm);
 
-        public Stream GetStream()
-        {
-            return new MemoryStream(NuGetPackage);
-        }
+        public Stream GetStream()=> new MemoryStream(NuGetPackage);
 
         private string GetDescriptionReleaseNotes()
         {
@@ -75,7 +73,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             var sb = new StringBuilder("_Packages_\n");
 
             foreach (var selectedPackage in Release.SelectedPackages)
-                sb.AppendLine($"- {selectedPackage.StepName} _{selectedPackage.Version}_");
+                sb.AppendLine($"- {selectedPackage.StepName} _({selectedPackage.Version})_");
 
             return sb.ToString();
         }
@@ -91,31 +89,44 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
         }
 
-        private byte[] GetNuGetPackage()
+        private byte[] CreateNuGetPackage()
         {
-            Logger.Info($"ReleasePackage.GetNuGetPackage: {Project.Name} {Release.Version}");
-            using (var memoryStream = new MemoryStream())
+            var packageBytes = Array.Empty<byte>();
+            var startTime = DateTimeOffset.UtcNow;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                using (var memoryStream = new MemoryStream())
                 {
-                    var manifest = Manifest.Create(this);
-                    manifest.Files = new List<ManifestFile>();
-
-                    AddFile(zipArchive, manifest, "project.json", stream => GetJson(Project, stream));
-                    AddFile(zipArchive, manifest, "release.json", stream => GetJson(Release, stream));
-                    AddFile(zipArchive, manifest, "channel.json", stream => GetJson(Channel, stream));
-                    AddFile(zipArchive, manifest, "server.json", stream => Server.SerializeInto(stream));
-                    AddFile(zipArchive, manifest, "deploy.ps1", stream => stream.Write(DeployPs1, 0, DeployPs1.Length));
-                    AddFile(zipArchive, manifest, "deploy.config", stream => stream.Write(DeployConfig, 0, DeployConfig.Length));
-
-                    using (var stream = zipArchive.CreateEntry($"{Id}.nuspec", CompressionLevel.Fastest).Open())
+                    using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
                     {
-                        manifest.Save(stream);
+                        var manifest = Manifest.Create(this);
+                        manifest.Files = new List<ManifestFile>();
+
+                        AddFile(zipArchive, manifest, "project.json", stream => GetJson(Project, stream));
+                        AddFile(zipArchive, manifest, "release.json", stream => GetJson(Release, stream));
+                        AddFile(zipArchive, manifest, "channel.json", stream => GetJson(Channel, stream));
+                        AddFile(zipArchive, manifest, "server.json", stream => Server.SerializeInto(stream));
+                        AddFile(zipArchive, manifest, "deploy.ps1", stream => stream.Write(DeployPs1, 0, DeployPs1.Length));
+                        AddFile(zipArchive, manifest, "deploy.config", stream => stream.Write(DeployConfig, 0, DeployConfig.Length));
+
+                        using (var stream = zipArchive.CreateEntry($"{Id}.nuspec", CompressionLevel.Fastest).Open())
+                        {
+                            manifest.Save(stream);
+                        }
                     }
+                    packageBytes = memoryStream.ToArray();
                 }
-                return memoryStream.ToArray();
             }
+            finally
+            {
+                timer.Stop();
+
+                Startup.AppInsights.TelemetryClient?.TrackDependency("NuGet Package", $"{Id}.{Version}.nupkg", startTime, timer.Elapsed, packageBytes.Length > 0);
+            }
+            return packageBytes;
         }
+        
 
         private static void AddFile(ZipArchive zipArchive, Manifest manifest, string fileName, Action<Stream> stream)
         {
