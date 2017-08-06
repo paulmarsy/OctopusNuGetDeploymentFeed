@@ -44,12 +44,17 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             var authenticated = server.IsAuthenticated;
             _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
+            Startup.AppInsights.TelemetryClient?.TrackEvent("CreateOctopusRepository", new Dictionary<string, string>
+            {
+                {"BaseUri", server.BaseUri},
+                {"IsAuthenticated", authenticated.ToString()}
+            });
             if (!server.IsAuthenticated)
                 return;
 
             server.ConfigureAppInsightsDependencyTracking();
 
-            var cache = new OctopusCache(_logger, server);
+            var cache = new OctopusCache(server, Startup.AppInsights.TelemetryClient);
             var repository = new OctopusPackageRepository(_logger, server, cache);
             _repositories[context] = repository;
         }

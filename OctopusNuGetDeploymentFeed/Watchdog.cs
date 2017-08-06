@@ -26,10 +26,24 @@ namespace OctopusDeployNuGetFeed
             task.Principal.UserId = "SYSTEM";
             task.Principal.LogonType = TaskLogonType.ServiceAccount;
 
+          task.Triggers.Add(new BootTrigger
+            {
+                Repetition =
+                {
+                    Duration = TimeSpan.Zero,
+                    Interval = CheckInterval
+                }
+            });
 
-            var trigger = task.Triggers.AddNew(TaskTriggerType.Boot);
-            trigger.Repetition.Duration = TimeSpan.Zero;
-            trigger.Repetition.Interval = CheckInterval;
+            task.Triggers.Add(new RegistrationTrigger
+            {
+                Delay = TimeSpan.FromMinutes(5),
+                Repetition =
+                {
+                    Duration = TimeSpan.Zero,
+                    Interval = CheckInterval
+                }
+            });
 
             task.Actions.Add(Assembly.GetExecutingAssembly().Location, ArgName);
 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Caching.Memory;
 using NuGet;
 using Octopus.Client.Model;
@@ -17,19 +19,19 @@ namespace OctopusDeployNuGetFeed.Octopus
     {
         private readonly object _allProjectSyncLock = new object();
         private readonly IMemoryCache _cache;
-        private readonly ILogger _logger;
         private readonly OctopusServer _server;
+        private readonly TelemetryClient _telemetryClient;
         private readonly Timer _timer;
 
-        public OctopusCache(ILogger logger, OctopusServer server)
+        public OctopusCache(OctopusServer server,TelemetryClient telemetryClient)
         {
             _cache = new MemoryCache(new MemoryCacheOptions
             {
                 CompactOnMemoryPressure = true,
                 ExpirationScanFrequency = TimeSpan.FromMinutes(10)
             });
-            _logger = logger;
             _server = server;
+            _telemetryClient = telemetryClient;
             _timer = new Timer(TimerHandler, null, 0, Timeout.Infinite);
         }
 
@@ -37,7 +39,8 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.JsonDocument, resource.Id), entry =>
             {
-                entry.Priority = CacheItemPriority.Low;
+                TrackCacheEvent(CacheKeyType.JsonDocument, resource.Id);
+                entry.SetPriority(CacheItemPriority.Low);
                 using (var sourceStream = _server.Client.GetContent(resource.Link("Self")))
                 {
                     return sourceStream.ReadAllBytes();
@@ -49,7 +52,8 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.Project, name), entry =>
             {
-                entry.AbsoluteExpiration = GetNextHourDateTimeOffset();
+                TrackCacheEvent(CacheKeyType.Project, name);
+                entry.SetAbsoluteExpiration(GetNextHourDateTimeOffset());
                 return _server.Repository.Projects.FindByName(name);
             });
         }
@@ -59,6 +63,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (!_cache.TryGetValue(CacheKey(CacheKeyType.ProjectList), out IList<ProjectResource> projects))
                 lock (_allProjectSyncLock)
                 {
+                    TrackCacheEvent(CacheKeyType.ProjectList, "All");
                     projects = UpdateProjectCache();
                 }
             return projects;
@@ -68,20 +73,32 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.Channel, channelId), entry =>
             {
-                entry.Priority = CacheItemPriority.Low;
+                TrackCacheEvent(CacheKeyType.Channel, channelId);
+                entry.SetPriority(CacheItemPriority.Low);
                 return _server.Repository.Channels.Get(channelId);
             });
         }
 
         public IEnumerable<ReleaseResource> ListReleases(ProjectResource project)
         {
-            return from release in _server.Repository.Projects.GetReleases(project).Items
-                let version = release.Version.ToSemanticVersion()
-                where version != null
-                select _cache.Set(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), release, new MemoryCacheEntryOptions
+            foreach (var release in _server.Repository.Projects.GetReleases(project).Items)
+            {
+                var version = release.Version.ToSemanticVersion();
+                if (version == null)
+                {
+                    _telemetryClient?.TrackEvent("SemanticVersion.ParseError", new Dictionary<string, string>
+                    {
+                        {"Project", project.Name },
+                        {"Release",release.Version }
+                    });
+                    continue;
+                }
+                TrackCacheEvent(CacheKeyType.Release, project.Id + ";" + version.ToNormalizedString(), "Seeded");
+                yield return _cache.Set(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), release, new MemoryCacheEntryOptions
                 {
                     SlidingExpiration = TimeSpan.FromHours(1)
                 });
+            }
         }
 
         public ReleaseResource GetRelease(ProjectResource project, SemanticVersion version)
@@ -89,6 +106,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), out ReleaseResource release))
                 return release;
 
+            TrackCacheEvent(CacheKeyType.Release, project.Id + ";" + version.ToNormalizedString());
             return ListReleases(project).SingleOrDefault(package =>
             {
                 var packageVesion = package.Version.ToSemanticVersion();
@@ -103,10 +121,16 @@ namespace OctopusDeployNuGetFeed.Octopus
             return type + ':' + string.Join(";", id.Select(x => x.ToLowerInvariant()));
         }
 
+        private void TrackCacheEvent(CacheKeyType type, string id, string eventName = "Miss") => _telemetryClient?.TrackEvent($"MemoryCache {eventName}", new Dictionary<string, string>
+        {
+            {"Cache Entry Type", type.ToString()},
+            {"Cache Key", id}
+        });
         private void TimerHandler(object state)
         {
             try
             {
+                TrackCacheEvent(CacheKeyType.ProjectList, "All", "Seeded");
                 lock (_allProjectSyncLock)
                 {
                     _cache.Remove(CacheKey(CacheKeyType.ProjectList));
@@ -150,7 +174,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             foreach (var project in _cache.GetOrCreate(CacheKey(CacheKeyType.ProjectList), entry =>
             {
-                entry.AbsoluteExpiration = expiration;
+                entry.SetAbsoluteExpiration( expiration);
                 return _server.Repository.Projects.GetAll();
             }))
                 yield return _cache.Set(project.Name, project, expiration);
