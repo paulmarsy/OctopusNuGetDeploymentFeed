@@ -132,6 +132,7 @@ namespace OctopusDeployNuGetFeed
                 CreateNoWindow = true,
                 UseShellExecute = false
             });
+            process.WaitForExit();
             if (process.ExitCode != 0)
                 throw new ExternalException($"Non-zero exit code from {fileName}: {process.ExitCode}");
         }
