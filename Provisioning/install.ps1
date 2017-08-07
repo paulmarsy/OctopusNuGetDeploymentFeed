@@ -18,6 +18,8 @@ if ($Version -ne 'latest' -and (Test-Path $AppFilePath)) {
 if (Test-Path $AppFilePath) {
     & $AppFilePath stop
     & $AppFilePath uninstall
+    $existingVersion = & $AppFilePath version
+    Write-Host "Existing version: $existingVersion"
 }
 
 $request = [System.Net.WebRequest]::Create("https://github.com/paulmarsy/OctopusNuGetDeploymentFeed/releases/$Version/")
@@ -27,6 +29,9 @@ $downloadUri = ([string]$request.GetResponse().GetResponseHeader("Location")).Re
 Write-Host "Downloading $downloadUri to $AppFilePath"
 if (!(Test-Path $InstallDir)) { New-Item -Path $InstallDir -ItemType Directory }
 Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $AppFilePath -Verbose
+
+$deployedVersion = & $AppFilePath version
+Write-Host "Version deployed: $deployedVersion"
 
 & $AppFilePath install -aikey:$AppInsightsKey
 if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not install" }
