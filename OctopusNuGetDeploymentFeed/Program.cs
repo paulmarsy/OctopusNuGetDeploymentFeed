@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Autofac;
 using Autofac.Integration.WebApi;
+using JetBrains.Annotations;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
@@ -101,6 +102,7 @@ namespace OctopusDeployNuGetFeed
             Environment.SetEnvironmentVariable("AppInsightsInstrumentationKey", AppInsightsKey, EnvironmentVariableTarget.Machine);
 
             _logger.Info($"Adding URL reservation for {BaseAddress}...");
+            StartProcess("netsh.exe", $"http delete urlacl url={BaseAddress}", false);
             StartProcess("netsh.exe", $"http add urlacl url={BaseAddress} user=\"NETWORK SERVICE\"");
 
             _logger.Info("Adding Port 80 firewall rule...");
@@ -123,7 +125,9 @@ namespace OctopusDeployNuGetFeed
             StartProcess("netsh.exe", $"http delete urlacl url={BaseAddress}");
         }
 
-        private static void StartProcess(string fileName, string arguments)
+        private static void StartProcess(string fileName, string arguments) => StartProcess(fileName, arguments, true);
+        [AssertionMethod]
+        private static void StartProcess(string fileName, string arguments, bool checkExitCode)
         {
             var process = Process.Start(new ProcessStartInfo
             {
@@ -133,7 +137,7 @@ namespace OctopusDeployNuGetFeed
                 UseShellExecute = false
             });
             process.WaitForExit();
-            if (process.ExitCode != 0)
+            if (checkExitCode && process.ExitCode != 0)
                 throw new ExternalException($"Non-zero exit code from {fileName}: {process.ExitCode}");
         }
     }
