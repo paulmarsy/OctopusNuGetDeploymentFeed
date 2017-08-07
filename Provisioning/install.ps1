@@ -1,4 +1,4 @@
-param($Version = 'latest', $AppInsightsKey)
+param($Version = 'latest', $AppInsightsKey, $Timestamp)
 
 Write-Output "Running on $(Get-Date)"
 Write-Output "Version: $Version"

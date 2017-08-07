@@ -23,6 +23,10 @@
         "octopusNuGetFeedVersion": {
             "type": "string",
             "defaultValue": "latest"
+        },
+        "timestamp":{
+            "type": "string",
+            "defaultValue": "#{Octopus.Deployment.CreatedUtc}"
         }
     },
     "variables": {
@@ -151,7 +155,7 @@
                     "fileUris": [
                         "[variables('scriptUri')]"
                     ],
-                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('scriptFileName'), ' -Version \"', parameters('octopusNuGetFeedVersion'), '\" -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\"')]"
+                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('scriptFileName'), ' -Version \"', parameters('octopusNuGetFeedVersion'), '\" -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\" -Timestamp \"', parameters('timestamp'), '\"')]"
                 }
             }
         }
