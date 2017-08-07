@@ -11,9 +11,9 @@ namespace OctopusDeployNuGetFeed.Logging
     {
         private static readonly string RootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private static readonly string LogFileNameTemplate = $"{Assembly.GetExecutingAssembly().GetName().Name}.{{0:yyyy-MM-dd}}.log";
-        private readonly ConsoleLogger _consoleLogger;
+        private readonly ILogger _consoleLogger;
 
-        public FileLogger(ConsoleLogger consoleLogger)
+        public FileLogger(ILogger consoleLogger)
         {
             _consoleLogger = consoleLogger;
         }
@@ -38,6 +38,14 @@ namespace OctopusDeployNuGetFeed.Logging
         public void Info(string message)
         {
             WriteLogFile(message, "INFO");
+        }
+
+        public void Exception(Exception exception, string callerFilePath = null, string callerMemberName = null)
+        {
+        }
+
+        public void UnhandledException(Exception exception)
+        {
         }
 
         public void Init()

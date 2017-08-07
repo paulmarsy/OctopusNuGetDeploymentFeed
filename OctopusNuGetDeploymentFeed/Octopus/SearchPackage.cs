@@ -60,9 +60,12 @@ namespace OctopusDeployNuGetFeed.Octopus
         public virtual string PackageHash => (Id + Version.ToOriginalString()).GetHash(Constants.HashAlgorithm);
         public string PackageHashAlgorithm => Constants.HashAlgorithm;
         public virtual DateTimeOffset LastUpdated => Project.LastModifiedOn.GetValueOrDefault();
+
         public virtual DateTimeOffset Created => Project.LastModifiedOn.GetValueOrDefault();
-      //  string IPackageName.Id => Project.Id.Replace('-', '.');
+
+        //  string IPackageName.Id => Project.Id.Replace('-', '.');
         public ICollection<PackageReferenceSet> PackageAssemblyReferences => new List<PackageReferenceSet>();
+
         public IEnumerable<FrameworkAssemblyReference> FrameworkAssemblies => Enumerable.Empty<FrameworkAssemblyReference>();
     }
 }

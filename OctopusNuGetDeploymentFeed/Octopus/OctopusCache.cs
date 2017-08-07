@@ -2,13 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Caching.Memory;
 using NuGet;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.Infrastructure;
-using OctopusDeployNuGetFeed.Logging;
 using ILogger = OctopusDeployNuGetFeed.Logging.ILogger;
 using MemoryCache = Microsoft.Extensions.Caching.Memory.MemoryCache;
 using SemanticVersion = NuGet.SemanticVersion;
@@ -18,12 +15,13 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusCache : IOctopusCache
     {
         private readonly object _allProjectSyncLock = new object();
+        private readonly IAppInsights _appInsights;
         private readonly IMemoryCache _cache;
+        private readonly ILogger _logger;
         private readonly OctopusServer _server;
-        private readonly TelemetryClient _telemetryClient;
         private readonly Timer _timer;
 
-        public OctopusCache(OctopusServer server,TelemetryClient telemetryClient)
+        public OctopusCache(OctopusServer server, IAppInsights appInsights, ILogger logger)
         {
             _cache = new MemoryCache(new MemoryCacheOptions
             {
@@ -31,7 +29,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                 ExpirationScanFrequency = TimeSpan.FromMinutes(10)
             });
             _server = server;
-            _telemetryClient = telemetryClient;
+            _appInsights = appInsights;
+            _logger = logger;
             _timer = new Timer(TimerHandler, null, 0, Timeout.Infinite);
         }
 
@@ -86,10 +85,10 @@ namespace OctopusDeployNuGetFeed.Octopus
                 var version = release.Version.ToSemanticVersion();
                 if (version == null)
                 {
-                    _telemetryClient?.TrackEvent("SemanticVersion.ParseError", new Dictionary<string, string>
+                    _appInsights.TrackEvent("SemanticVersion.ParseError", new Dictionary<string, string>
                     {
-                        {"Project", project.Name },
-                        {"Release",release.Version }
+                        {"Project", project.Name},
+                        {"Release", release.Version}
                     });
                     continue;
                 }
@@ -131,11 +130,15 @@ namespace OctopusDeployNuGetFeed.Octopus
             return type + ':' + string.Join(";", id.Select(x => x.ToLowerInvariant()));
         }
 
-        private void TrackCacheEvent(CacheKeyType type, string id, string eventName = "Miss") => _telemetryClient?.TrackEvent($"MemoryCache {eventName}", new Dictionary<string, string>
+        private void TrackCacheEvent(CacheKeyType type, string id, string eventName = "Miss")
         {
-            {"Cache Entry Type", type.ToString()},
-            {"Cache Key", id}
-        });
+            _appInsights.TrackEvent($"MemoryCache {eventName}", new Dictionary<string, string>
+            {
+                {"Cache Entry Type", type.ToString()},
+                {"Cache Key", id}
+            });
+        }
+
         private void TimerHandler(object state)
         {
             try
@@ -150,7 +153,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
             catch (Exception e)
             {
-                LogManager.Current.Exception(e);
+                _logger.Exception(e);
             }
         }
 
@@ -184,7 +187,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             foreach (var project in _cache.GetOrCreate(CacheKey(CacheKeyType.ProjectList), entry =>
             {
-                entry.SetAbsoluteExpiration( expiration);
+                entry.SetAbsoluteExpiration(expiration);
                 return _server.Repository.Projects.GetAll();
             }))
                 yield return _cache.Set(project.Name, project, expiration);

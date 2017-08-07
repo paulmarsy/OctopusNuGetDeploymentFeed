@@ -25,6 +25,14 @@ namespace OctopusDeployNuGetFeed.Logging
             Console.WriteLine(message);
         }
 
+        public void Exception(Exception exception, string callerFilePath = null, string callerMemberName = null)
+        {
+        }
+
+        public void UnhandledException(Exception exception)
+        {
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WritePrefixLine(ConsoleColor prefixColour, ConsoleColor colour, string prefix, string message)
         {

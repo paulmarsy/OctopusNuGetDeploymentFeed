@@ -6,16 +6,16 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 {
     public class PassthroughExceptionHandler : ExceptionHandler
     {
-        private readonly LogManager _logManager;
+        private readonly ILogger _logger;
 
-        public PassthroughExceptionHandler(LogManager logManager)
+        public PassthroughExceptionHandler(ILogger logger)
         {
-            _logManager = logManager;
+            _logger = logger;
         }
 
         public override void Handle(ExceptionHandlerContext context)
         {
-            _logManager.Exception(context.Exception);
+            _logger.Exception(context.Exception);
             ExceptionDispatchInfo.Capture(context.Exception).Throw();
         }
     }

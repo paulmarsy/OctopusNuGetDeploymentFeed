@@ -19,14 +19,19 @@ namespace OctopusDeployNuGetFeed.Controllers
     public class NuGetODataController : ODataController
     {
         private const int MaxPageSize = 25;
+        private readonly IPackageRepositoryFactory _packageRepositoryFactory;
 
-        private readonly IPackageRepositoryFactory _repositoryFactory = Startup.OctopusProjectPackageRepositoryFactory;
+
+        public NuGetODataController(IPackageRepositoryFactory packageRepositoryFactory)
+        {
+            _packageRepositoryFactory = packageRepositoryFactory;
+        }
 
         // GET /Packages(Id=,Version=)
         [HttpGet]
         public IHttpActionResult Get(ODataQueryOptions<ODataPackage> options, string id, string version, CancellationToken token)
         {
-            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
@@ -42,7 +47,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
@@ -72,7 +77,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
@@ -85,7 +90,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpGet]
         public IHttpActionResult SearchCount(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
@@ -101,7 +106,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpHead]
         public HttpResponseMessage Download(string id, string version = "", CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _repositoryFactory.GetPackageRepository(User);
+            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
 

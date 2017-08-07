@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
@@ -19,6 +20,7 @@ namespace OctopusDeployNuGetFeed
             _logger = logger;
         }
 
+        [Conditional("DEBUG")]
         public void CreateTask()
         {
             _logger.Info($"Creating Scheduled Task: {TaskName}");
@@ -26,7 +28,7 @@ namespace OctopusDeployNuGetFeed
             task.Principal.UserId = "SYSTEM";
             task.Principal.LogonType = TaskLogonType.ServiceAccount;
 
-          task.Triggers.Add(new BootTrigger
+            task.Triggers.Add(new BootTrigger
             {
                 Repetition =
                 {
@@ -51,12 +53,13 @@ namespace OctopusDeployNuGetFeed
             _logger.Info("Scheduled Task has been created.");
         }
 
+        [Conditional("DEBUG")]
         public void DeleteTask()
         {
             using (var taskService = new TaskService())
             {
                 taskService.RootFolder.DeleteTask(TaskName, false);
-                _logger.Warning($"Scheduled Task Deleted: {TaskName}");
+                _logger.Info($"Scheduled Task Deleted: {TaskName}");
             }
         }
 
@@ -82,7 +85,7 @@ namespace OctopusDeployNuGetFeed
             }
             catch (Exception e)
             {
-                LogManager.Current.Exception(e);
+                _logger.Exception(e);
             }
         }
     }

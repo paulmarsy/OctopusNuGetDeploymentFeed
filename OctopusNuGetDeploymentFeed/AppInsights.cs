@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using ApplicationInsights.OwinExtensions;
 using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
-using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed
 {
-    public class AppInsights
+    public class AppInsights : IAppInsights
     {
         private static readonly string[] PerformanceCounters =
         {
@@ -78,50 +79,77 @@ namespace OctopusDeployNuGetFeed
             "\\Network Interface(*)\\Packets Received Errors"
         };
 
-        private readonly ILogger _logger = LogManager.Current;
-        public bool IsEnabled => !string.IsNullOrWhiteSpace(AppInsightsKey);
+        private readonly string _instrumentationKey;
 
-        public TelemetryClient TelemetryClient { get; private set; }
-        public TelemetryConfiguration TelemetryConfiguration { get; } = TelemetryConfiguration.Active;
-        private static string AppInsightsKey => Environment.GetEnvironmentVariable("AppInsightsInstrumentationKey");
+        private TelemetryClient _telemetryClient;
+
+        public AppInsights(string instrumentationKey)
+        {
+            _instrumentationKey = instrumentationKey;
+        }
+
+        public bool IsEnabled => true;
 
         public void Initialize()
         {
             if (!IsEnabled)
                 return;
 
-            _logger.Info("Configuring App Insights Telemetry...");
+            TelemetryConfiguration.Active.InstrumentationKey = _instrumentationKey;
 
-            TelemetryConfiguration.InstrumentationKey = AppInsightsKey;
-
-            TelemetryConfiguration.TelemetryInitializers.Add(new OperationIdTelemetryInitializer());
+            TelemetryConfiguration.Active.TelemetryInitializers.Add(new OperationIdTelemetryInitializer());
 
             UseQuickPulse();
 
             UsePerformanceCounters();
 
-            TelemetryClient = new TelemetryClient(TelemetryConfiguration)
+            _telemetryClient = new TelemetryClient(TelemetryConfiguration.Active)
             {
-                InstrumentationKey = AppInsightsKey
+                InstrumentationKey = _instrumentationKey
             };
-            TelemetryClient.Context.Component.Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            TelemetryClient.Context.Device.Id = Environment.MachineName;
-            TelemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.VersionString;
-            TelemetryClient.Context.Device.Type = "Web Server";
+            _telemetryClient.Context.Component.Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            _telemetryClient.Context.Device.Id = Environment.MachineName;
+            _telemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.VersionString;
+            _telemetryClient.Context.Device.Type = "Web Server";
+        }
+
+        public void TrackTrace(string message, SeverityLevel severityLevel)
+        {
+            _telemetryClient.TrackTrace(message, severityLevel);
+        }
+
+        public void TrackDependency(string dependencyTypeName, string target, string dependencyName, string data, DateTimeOffset startTime, TimeSpan duration, string resultCode, bool success)
+        {
+            _telemetryClient.TrackDependency(dependencyTypeName, target, dependencyName, data, startTime, duration, resultCode, success);
+        }
+
+        public void TrackEvent(string eventName, IDictionary<string, string> properties = null)
+        {
+            _telemetryClient.TrackEvent(eventName, properties);
+        }
+
+        public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
+        {
+            _telemetryClient.TrackDependency(dependencyName, commandName, startTime, duration, success);
+        }
+
+        public void TrackException(Exception exception, IDictionary<string, string> properties = null)
+        {
+            _telemetryClient.TrackException(exception, properties);
         }
 
         private void UseQuickPulse()
         {
             var quickPulseModule = new QuickPulseTelemetryModule();
-            quickPulseModule.Initialize(TelemetryConfiguration);
+            quickPulseModule.Initialize(TelemetryConfiguration.Active);
 
-            TelemetryConfiguration.TelemetryProcessorChainBuilder.Use(next =>
+            TelemetryConfiguration.Active.TelemetryProcessorChainBuilder.Use(next =>
             {
                 var processor = new QuickPulseTelemetryProcessor(next);
                 quickPulseModule.RegisterTelemetryProcessor(processor);
                 return processor;
             });
-            TelemetryConfiguration.TelemetryProcessorChainBuilder.Build();
+            TelemetryConfiguration.Active.TelemetryProcessorChainBuilder.Build();
         }
 
         private void UsePerformanceCounters()
@@ -129,7 +157,7 @@ namespace OctopusDeployNuGetFeed
             var perfCollectorModule = new PerformanceCollectorModule();
             foreach (var counter in PerformanceCounters)
                 perfCollectorModule.Counters.Add(new PerformanceCounterCollectionRequest(counter, counter.Split('\\')[1]));
-            perfCollectorModule.Initialize(TelemetryConfiguration);
+            perfCollectorModule.Initialize(TelemetryConfiguration.Active);
         }
     }
 }

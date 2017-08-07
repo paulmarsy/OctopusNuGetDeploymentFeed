@@ -681,10 +681,12 @@ if (!(Test-IsNominatedDeployer)) {
 	return
 }
 
-$deployScript = $OctopusParameters['Octopus.Action.CustomScripts.Deploy.ps1'] 
-if (Test-String $deployScript) {
+$featureDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.Deploy.ps1'] 
+$customDeployScript = Get-DeployConfigSetting "Octopus.Action.PreDeployScript" ''
+if ((Test-String $featureDeployScript) -or (Test-String $customDeployScript)) {
 	Show-Heading 'Pre-Deploy Script' 
-	[scriptblock]::Create($deployScript).Invoke()
+	[scriptblock]::Create($featureDeployScript).Invoke()
+	[scriptblock]::Create($customDeployScript).Invoke()
 }
 
 $deploymentContext = [DeploymentContext]::new($Chain_BaseUrl)
@@ -758,8 +760,11 @@ else {
     Show-Heading 'Deployment Successful!'
 }
 
-$postDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.PostDeploy.ps1'] 
-if (Test-String $postDeployScript) {
+
+$featurePostDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.PostDeploy.ps1'] 
+$customPostDeployScript = Get-DeployConfigSetting "Octopus.Action.PostDeployScript" ''
+if ((Test-String $featurePostDeployScript) -or (Test-String $customPostDeployScript)) {
 	Show-Heading 'Post-Deploy Script' 
-	[scriptblock]::Create($postDeployScript).Invoke()
+	[scriptblock]::Create($featurePostDeployScript).Invoke()
+	[scriptblock]::Create($customPostDeployScript).Invoke()
 }

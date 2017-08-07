@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using NuGet;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
     public interface INuGetPackage : IPackageMetadata
     {
-    
         bool Listed { get; }
         int DownloadCount { get; }
         long PackageSize { get; }

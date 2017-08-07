@@ -10,8 +10,15 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly ILogger _logger = LogManager.Current;
+        private readonly IAppInsights _appInsights;
+        private readonly ILogger _logger;
         private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
+
+        public OctopusPackageRepositoryFactory(ILogger logger, IAppInsights appInsights)
+        {
+            _logger = logger;
+            _appInsights = appInsights;
+        }
 
         public IPackageRepository GetPackageRepository(IPrincipal user)
         {
@@ -40,11 +47,11 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (_repositories.ContainsKey(context))
                 return;
 
-            var server = new OctopusServer(context.baseUrl, context.apiKey);
+            var server = new OctopusServer(_appInsights, context.baseUrl, context.apiKey);
 
             var authenticated = server.IsAuthenticated;
             _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
-            Startup.AppInsights.TelemetryClient?.TrackEvent("CreateOctopusRepository", new Dictionary<string, string>
+            _appInsights.TrackEvent("CreateOctopusRepository", new Dictionary<string, string>
             {
                 {"BaseUri", server.BaseUri},
                 {"IsAuthenticated", authenticated.ToString()}
@@ -54,8 +61,8 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             server.ConfigureAppInsightsDependencyTracking();
 
-            var cache = new OctopusCache(server, Startup.AppInsights.TelemetryClient);
-            var repository = new OctopusPackageRepository(_logger, server, cache);
+            var cache = new OctopusCache(server, _appInsights, _logger);
+            var repository = new OctopusPackageRepository(_appInsights, _logger, server, cache);
             _repositories[context] = repository;
         }
     }

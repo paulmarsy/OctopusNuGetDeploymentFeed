@@ -1,14 +1,7 @@
 param($Version = 'latest', $AppInsightsKey)
 
+Write-Host "Running on $(Get-Date)"
 Write-Host "Version: $Version"
-if (![string]::IsNullOrWhiteSpace($AppInsightsKey)) {
-    Write-Host 'Setting Application Insights Instrumentation Key...'
-    [System.Environment]::SetEnvironmentVariable('AppInsightsInstrumentationKey', $AppInsightsKey, [System.EnvironmentVariableTarget]::Machine)
-}
-
-Write-Host 'Adding Port 80 firewall rule...'
-& netsh.exe advfirewall firewall add rule name="HTTP" dir=in action=allow protocol=TCP localport=80
-if ($LASTEXITCODE -ne 0) { throw "Unable to add HTTP rule to Windows Firewalls" }
 
 $BinaryName = 'OctopusDeployNuGetFeed.exe'
 $InstallDir = 'C:\OctopusDeployNuGetFeed'
@@ -35,7 +28,7 @@ Write-Host "Downloading $downloadUri to $AppFilePath"
 if (!(Test-Path $InstallDir)) { New-Item -Path $InstallDir -ItemType Directory }
 Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $AppFilePath -Verbose
 
-& $AppFilePath install
+& $AppFilePath install -aikey:$AppInsightsKey
 if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not install" }
 
 & $AppFilePath start

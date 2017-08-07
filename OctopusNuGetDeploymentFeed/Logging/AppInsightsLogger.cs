@@ -1,36 +1,56 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.ApplicationInsights.DataContracts;
 
 namespace OctopusDeployNuGetFeed.Logging
 {
     public class AppInsightsLogger : ILogger
     {
+        private readonly IAppInsights _appInsights;
+
+        public AppInsightsLogger(IAppInsights appInsights)
+        {
+            _appInsights = appInsights;
+        }
+
         public void Critical(string message)
         {
-            Startup.AppInsights.TelemetryClient?.TrackTrace(message, SeverityLevel.Critical);
+            _appInsights.TrackTrace(message, SeverityLevel.Critical);
         }
 
         public void Error(string message)
         {
-            Startup.AppInsights.TelemetryClient?.TrackTrace(message, SeverityLevel.Error);
+            _appInsights.TrackTrace(message, SeverityLevel.Error);
         }
 
         public void Warning(string message)
         {
-            Startup.AppInsights.TelemetryClient?.TrackTrace(message, SeverityLevel.Warning);
+            _appInsights.TrackTrace(message, SeverityLevel.Warning);
         }
 
         public void Info(string message)
         {
-            Startup.AppInsights.TelemetryClient?.TrackTrace(message, SeverityLevel.Information);
+            _appInsights.TrackTrace(message, SeverityLevel.Information);
         }
 
-        public void Exception(Exception exception, string source)
+        public void Exception(Exception exception, string callerFilePath = null, string callerMemberName = null)
         {
-            Startup.AppInsights.TelemetryClient?.TrackException(exception, new Dictionary<string, string>
+            var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
+
+            _appInsights.TrackException(exception, new Dictionary<string, string>
             {
-                {"Source", source}
+                {"CallerFilePath", callerFilePath},
+                {"CallerMemberName", callerMemberName},
+                {"CallerTypeName", callerTypeName}
+            });
+        }
+
+        public void UnhandledException(Exception exception)
+        {
+            _appInsights.TrackException(exception, new Dictionary<string, string>
+            {
+                {"Source", "UnhandledException"}
             });
         }
     }

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using NuGet;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.DataServices;
-using ILogger = OctopusDeployNuGetFeed.Logging.ILogger;
+using OctopusDeployNuGetFeed.Logging;
 using SemanticVersion = NuGet.SemanticVersion;
 
 namespace OctopusDeployNuGetFeed.Octopus

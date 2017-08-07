@@ -1,3 +1,6 @@
+using System;
+using System.Runtime.CompilerServices;
+
 namespace OctopusDeployNuGetFeed.Logging
 {
     public interface ILogger
@@ -6,5 +9,7 @@ namespace OctopusDeployNuGetFeed.Logging
         void Error(string message);
         void Warning(string message);
         void Info(string message);
+        void Exception(Exception exception, [CallerFilePath] string callerFilePath = null, [CallerMemberName] string callerMemberName = null);
+        void UnhandledException(Exception exception);
     }
 }

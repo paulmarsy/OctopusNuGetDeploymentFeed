@@ -10,13 +10,15 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusServer : IOctopusServer
     {
+        private readonly IAppInsights _appInsights;
         private readonly List<(OctopusRequest request, DateTimeOffset startTime, Stopwatch duration)> _dependencyTrackingCache = new List<(OctopusRequest, DateTimeOffset, Stopwatch)>();
         private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private IHttpOctopusClient _client;
         private IOctopusRepository _repository;
 
-        public OctopusServer(string baseUri, string apiKey)
+        public OctopusServer(IAppInsights appInsights, string baseUri, string apiKey)
         {
+            _appInsights = appInsights;
             _endpoint = new Lazy<OctopusServerEndpoint>(() => new OctopusServerEndpoint(baseUri, apiKey));
         }
 
@@ -62,7 +64,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 var tracker = _dependencyTrackingCache.Single(entry => entry.request == octopusResponse.Request);
                 _dependencyTrackingCache.Remove(tracker);
-                Startup.AppInsights.TelemetryClient?.TrackDependency("Octopus Deploy API", BaseUri, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracker.startTime, tracker.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
+                _appInsights.TrackDependency("Octopus Deploy API", BaseUri, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracker.startTime, tracker.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
             }
         }
     }

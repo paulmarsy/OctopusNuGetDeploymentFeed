@@ -3,8 +3,9 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using Autofac;
 using NuGet;
-using OctopusDeployNuGetFeed.Logging;
+using ILogger = OctopusDeployNuGetFeed.Logging.ILogger;
 
 namespace OctopusDeployNuGetFeed.Infrastructure
 {
@@ -39,7 +40,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         {
             var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
             if (!SemanticVersion.TryParse(version, out SemanticVersion semver))
-                LogManager.Current.Warning($"{callerTypeName}.{callerMemberName} Unable to convert to Semantic Version from: {version}");
+                Program.Container.Resolve<ILogger>().Warning($"{callerTypeName}.{callerMemberName} Unable to convert to Semantic Version from: {version}");
 
             return semver;
         }

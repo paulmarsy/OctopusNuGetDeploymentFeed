@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Microsoft.ApplicationInsights;
 using NuGet;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.DataServices;
@@ -21,6 +21,8 @@ namespace OctopusDeployNuGetFeed.Octopus
     {
         private static readonly byte[] DeployPs1;
         private static readonly byte[] DeployConfig;
+        private readonly IAppInsights _appInsights;
+        private readonly Lazy<byte[]> _nugetPackage;
 
         static ReleasePackage()
         {
@@ -29,8 +31,9 @@ namespace OctopusDeployNuGetFeed.Octopus
             DeployConfig = GetResourceBytes(assembly, "deploy.config");
         }
 
-        public ReleasePackage(ILogger logger, IOctopusServer server, IOctopusCache octopusCache, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
+        public ReleasePackage(IAppInsights appInsights, ILogger logger, IOctopusServer server, IOctopusCache octopusCache, ProjectResource project, ReleaseResource release, ChannelResource channel) : base(logger, server, project, release, true)
         {
+            _appInsights = appInsights;
             Cache = octopusCache;
             Channel = channel;
             _nugetPackage = new Lazy<byte[]>(() => Cache.GetNuGetPackage(project, release, CreateNuGetPackage));
@@ -40,7 +43,6 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         protected ChannelResource Channel { get; }
         public Uri ReleaseUrl => new Uri(new Uri(Server.BaseUri), Release.Link("Web"));
-        private readonly Lazy<byte[]> _nugetPackage;
         protected byte[] NuGetPackage => _nugetPackage.Value;
 
         public override string Description => $"_Project:_ [{Project.Name}]({ProjectUrl}) <br/>\n" +
@@ -53,7 +55,10 @@ namespace OctopusDeployNuGetFeed.Octopus
         public override long PackageSize => NuGetPackage.Length;
         public override string PackageHash => GetStream().GetHash(Constants.HashAlgorithm);
 
-        public Stream GetStream()=> new MemoryStream(NuGetPackage);
+        public Stream GetStream()
+        {
+            return new MemoryStream(NuGetPackage);
+        }
 
         private string GetDescriptionReleaseNotes()
         {
@@ -93,7 +98,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             var packageBytes = Array.Empty<byte>();
             var startTime = DateTimeOffset.UtcNow;
-            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var timer = Stopwatch.StartNew();
             try
             {
                 using (var memoryStream = new MemoryStream())
@@ -122,11 +127,11 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 timer.Stop();
 
-                Startup.AppInsights.TelemetryClient?.TrackDependency("NuGet Package", $"{Id}.{Version}.nupkg", startTime, timer.Elapsed, packageBytes.Length > 0);
+                _appInsights.TrackDependency("NuGet Package", $"{Id}.{Version}.nupkg", startTime, timer.Elapsed, packageBytes.Length > 0);
             }
             return packageBytes;
         }
-        
+
 
         private static void AddFile(ZipArchive zipArchive, Manifest manifest, string fileName, Action<Stream> stream)
         {

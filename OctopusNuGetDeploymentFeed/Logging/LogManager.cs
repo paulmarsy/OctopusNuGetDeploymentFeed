@@ -6,67 +6,71 @@ namespace OctopusDeployNuGetFeed.Logging
 {
     public class LogManager : ILogger
     {
-        private LogManager()
+        private readonly AppInsightsLogger _appInsightsLogger;
+        private readonly ConsoleLogger _consoleLogger;
+        private readonly FileLogger _fileLogger;
+
+        public LogManager(IAppInsights appInsights)
         {
-            ConsoleLogger = new ConsoleLogger();
-            FileLogger = new FileLogger(ConsoleLogger);
-            AppInsightsLogger = new AppInsightsLogger();
+            _consoleLogger = new ConsoleLogger();
+            _fileLogger = new FileLogger(_consoleLogger);
+            _appInsightsLogger = new AppInsightsLogger(appInsights);
         }
-
-        public AppInsightsLogger AppInsightsLogger { get; }
-        public ConsoleLogger ConsoleLogger { get; }
-        public FileLogger FileLogger { get; }
-
-        public static LogManager Current { get; } = new LogManager();
 
         public void Critical(string message)
         {
-            ConsoleLogger.Critical(message);
-            AppInsightsLogger.Critical(message);
-            FileLogger.Critical(message);
+            _consoleLogger.Critical(message);
+            _appInsightsLogger.Critical(message);
+            _fileLogger.Critical(message);
         }
 
         public void Error(string message)
         {
-            ConsoleLogger.Error(message);
-            AppInsightsLogger.Error(message);
-            FileLogger.Error(message);
+            _consoleLogger.Error(message);
+            _appInsightsLogger.Error(message);
+            _fileLogger.Error(message);
         }
 
         public void Warning(string message)
         {
-            ConsoleLogger.Warning(message);
-            AppInsightsLogger.Warning(message);
-            FileLogger.Warning(message);
+            _consoleLogger.Warning(message);
+            _appInsightsLogger.Warning(message);
+            _fileLogger.Warning(message);
         }
 
         public void Info(string message)
         {
-            ConsoleLogger.Info(message);
-            AppInsightsLogger.Info(message);
-            FileLogger.Info(message);
+            _consoleLogger.Info(message);
+            _appInsightsLogger.Info(message);
+            _fileLogger.Info(message);
         }
 
         public void Exception(Exception exception, [CallerFilePath] string callerFilePath = null, [CallerMemberName] string callerMemberName = null)
         {
+            _appInsightsLogger.Exception(exception, callerFilePath, callerMemberName);
             var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
             ExceptionImpl(exception, $"{callerTypeName}.{callerMemberName}");
         }
 
         public void UnhandledException(Exception exception)
         {
+            _appInsightsLogger.UnhandledException(exception);
             ExceptionImpl(exception, "Unhandled Exception");
+        }
+
+        public void Init()
+        {
+            _fileLogger.Init();
         }
 
         private void ExceptionImpl(Exception exception, string source)
         {
-            AppInsightsLogger.Exception(exception, source);
             Critical($"{source}: {exception.GetType().Name} {exception.Message}. {exception.InnerException?.GetType().Name} {exception.InnerException?.Message}\n{exception.StackTrace}");
 #if DEBUG
-            if (!Debugger.IsAttached)
-                Debugger.Launch();
+            if (!System.Diagnostics.Debugger.IsAttached)
+                System.Diagnostics.Debugger.Launch();
 
-              Debugger.Break();
+            System.Diagnostics.Debugger.Break();
 #endif
         }
     }
