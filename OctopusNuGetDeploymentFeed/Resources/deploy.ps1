@@ -752,19 +752,29 @@ do {
     }
 } while ($tasksStillRunning)
 
-if ($deploymentControllers | % Task | ? FinishedSuccessfully -eq $false) {
+$deploymentSuccessful = if ($deploymentControllers | % Task | ? FinishedSuccessfully -eq $false) {
     Show-Heading 'Deployment Failed!'
-    Write-Fatal (($deploymentControllers | % Task | % ErrorMessage) -join "`n")
-}
-else {
+	$false
+} else {
     Show-Heading 'Deployment Successful!'
+	$true
 }
-
 
 $featurePostDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.PostDeploy.ps1'] 
 $customPostDeployScript = Get-DeployConfigSetting "Octopus.Action.PostDeployScript" ''
 if ((Test-String $featurePostDeployScript) -or (Test-String $customPostDeployScript)) {
 	Show-Heading 'Post-Deploy Script' 
-	[scriptblock]::Create($featurePostDeployScript).Invoke()
-	[scriptblock]::Create($customPostDeployScript).Invoke()
+	$sanitizedDeployContext = [pscustomobject]@{
+		Success = $deploymentSuccessful
+		Project = $deploymentContext.Project
+		Release = $deploymentContext.Release
+		Environments = $deploymentContext.Environments
+		Tenants = $deploymentContext.Tenants
+	} 
+	[scriptblock]::Create($featurePostDeployScript).Invoke($sanitizedDeployContext)
+	[scriptblock]::Create($customPostDeployScript).Invoke($sanitizedDeployContext)
+}
+
+if (!$deploymentSuccessful) {
+	Write-Fatal (($deploymentControllers | % Task | % ErrorMessage) -join "`n")
 }

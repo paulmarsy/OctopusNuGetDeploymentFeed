@@ -38,9 +38,7 @@ namespace OctopusDeployNuGetFeed
             appInsights.Initialize();
             builder.RegisterInstance(appInsights).As<IAppInsights>();
 
-            var logger = new LogManager(appInsights);
-            logger.Init();
-            builder.RegisterInstance(logger).As<ILogger>();
+            builder.RegisterInstance(new LogManager(appInsights)).As<ILogger>();
 
             builder.RegisterType<Program>().AsSelf();
             builder.RegisterType<Watchdog>().AsSelf();
@@ -125,7 +123,11 @@ namespace OctopusDeployNuGetFeed
             StartProcess("netsh.exe", $"http delete urlacl url={BaseAddress}");
         }
 
-        private static void StartProcess(string fileName, string arguments) => StartProcess(fileName, arguments, true);
+        private static void StartProcess(string fileName, string arguments)
+        {
+            StartProcess(fileName, arguments, true);
+        }
+
         [AssertionMethod]
         private static void StartProcess(string fileName, string arguments, bool checkExitCode)
         {

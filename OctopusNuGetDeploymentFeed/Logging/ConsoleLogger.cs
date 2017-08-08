@@ -1,40 +1,64 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace OctopusDeployNuGetFeed.Logging
 {
     public class ConsoleLogger : ILogger
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Critical(string message)
         {
-            WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "CRITICAL", message);
+            WriteLineErr("CRITICAL ", message);
+            WriteLineColored(ConsoleColor.DarkRed, ConsoleColor.Red, "CRITICAL", message);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Error(string message)
         {
-            WritePrefixLine(ConsoleColor.DarkRed, ConsoleColor.Red, "ERROR", message);
+            WriteLineErr("ERROR ", message);
+            WriteLineColored(ConsoleColor.DarkRed, ConsoleColor.Red, "ERROR", message);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Warning(string message)
         {
-            WritePrefixLine(ConsoleColor.DarkYellow, ConsoleColor.Yellow, "WARNING", message);
+            WriteLineErr("WARNING ", message);
+            WriteLineColored(ConsoleColor.DarkYellow, ConsoleColor.Yellow, "WARNING", message);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Info(string message)
         {
-            Console.WriteLine(message);
+            WriteLineStd(message);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Exception(Exception exception, string callerFilePath = null, string callerMemberName = null)
         {
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UnhandledException(Exception exception)
         {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WritePrefixLine(ConsoleColor prefixColour, ConsoleColor colour, string prefix, string message)
+        private static void WriteLineStd(string message)
+        {
+            Console.Out.WriteLineAsync(message);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Conditional("RELEASE")]
+        private static void WriteLineErr(string prefix, string message)
+        {
+            Console.Error.WriteLineAsync(prefix + message);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Conditional("DEBUG")]
+        private static void WriteLineColored(ConsoleColor prefixColour, ConsoleColor colour, string prefix, string message)
         {
             Console.BackgroundColor = prefixColour;
             Console.ForegroundColor = GetContrastingForegroundColor(prefixColour);
@@ -46,6 +70,7 @@ namespace OctopusDeployNuGetFeed.Logging
             Console.ResetColor();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ConsoleColor GetContrastingForegroundColor(ConsoleColor backgroundColor)
         {
             switch (backgroundColor)
