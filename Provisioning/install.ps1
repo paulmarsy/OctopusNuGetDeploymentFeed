@@ -1,4 +1,4 @@
-param($Version = 'latest', $AppInsightsKey, $Timestamp)
+param($Version = 'latest', $AppInsightsKey, $Timestamp, $EncodedInstallScript)
 
 Write-Output "Running on $(Get-Date)"
 Write-Output "Version: $Version"
@@ -35,6 +35,11 @@ Write-Output "Version deployed: $deployedVersion"
 
 & $AppFilePath install -aikey:$AppInsightsKey
 if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not install" }
+
+if (!([string]::IsNullOrWhiteSpace($EncodedInstallScript))) {
+    $installScript = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedInstallScript))
+    [scriptblock]::Create($installScript).Invoke()
+}
 
 & $AppFilePath start
 if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not start" }
