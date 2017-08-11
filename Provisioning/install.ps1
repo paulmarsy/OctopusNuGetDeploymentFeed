@@ -1,19 +1,10 @@
-param($Version = 'latest', $AppInsightsKey, $Timestamp, $EncodedInstallScript)
+param($AppInsightsKey, $Timestamp, $EncodedInstallScript)
 
 Write-Output "Running on $(Get-Date)"
-Write-Output "Version: $Version"
 
 $BinaryName = 'OctopusDeployNuGetFeed.exe'
 $InstallDir = 'C:\OctopusDeployNuGetFeed'
 $AppFilePath = Join-Path $InstallDir $BinaryName
-
-if ($Version -ne 'latest' -and (Test-Path $AppFilePath)) {
-    $existingVersion = & $AppFilePath version
-    if ($Version -eq $existingVersion) {
-        Write-Output "Already on version $existingVersion"
-        return
-    }
-}
 
 if (Test-Path $AppFilePath) {
     & $AppFilePath stop
@@ -22,7 +13,7 @@ if (Test-Path $AppFilePath) {
     Write-Output "Existing version: $existingVersion"
 }
 
-$request = [System.Net.WebRequest]::Create("https://github.com/paulmarsy/OctopusNuGetDeploymentFeed/releases/$Version/")
+$request = [System.Net.WebRequest]::Create("https://github.com/paulmarsy/OctopusNuGetDeploymentFeed/releases/latest/")
 $request.AllowAutoRedirect = $false
 $downloadUri = ([string]$request.GetResponse().GetResponseHeader("Location")).Replace('tag','download') + '/' + $BinaryName
 
