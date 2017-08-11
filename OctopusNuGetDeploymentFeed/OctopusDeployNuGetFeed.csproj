@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ApplicationInsights.OwinExtensions" Version="0.4.1" />
+    <PackageReference Include="ApplicationInsights.OwinExtensions" Version="0.5.0" />
     <PackageReference Include="Autofac" Version="4.6.1" />
     <PackageReference Include="Autofac.WebApi2" Version="4.1.0" />
     <PackageReference Include="Costura.Fody" Version="1.6.2" />
@@ -32,7 +32,7 @@
     <PackageReference Include="Octopus.Client" Version="4.22.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.4.0-preview2-25405-01" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
     <PackageReference Include="TaskScheduler" Version="2.5.28" />
     <PackageReference Include="Topshelf" Version="4.0.3" />
   </ItemGroup>
