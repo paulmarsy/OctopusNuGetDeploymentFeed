@@ -19,8 +19,7 @@ namespace OctopusDeployNuGetFeed
         {
             _logger = logger;
         }
-
-        [Conditional("DEBUG")]
+        
         public void CreateTask()
         {
             _logger.Info($"Creating Scheduled Task: {TaskName}");
@@ -52,8 +51,7 @@ namespace OctopusDeployNuGetFeed
             TaskService.Instance.RootFolder.RegisterTaskDefinition(TaskName, task);
             _logger.Info("Scheduled Task has been created.");
         }
-
-        [Conditional("DEBUG")]
+        
         public void DeleteTask()
         {
             using (var taskService = new TaskService())
