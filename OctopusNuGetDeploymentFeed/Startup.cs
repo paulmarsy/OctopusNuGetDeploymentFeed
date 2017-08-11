@@ -57,10 +57,16 @@ namespace OctopusDeployNuGetFeed
                 }
             });
             if (Program.Container.Resolve<IAppInsights>().IsEnabled)
-                app.UseApplicationInsights();
+                app.UseApplicationInsights(shouldTraceRequest: ShouldTraceRequest);
 
             app.Use<BasicAuthentication>();
             app.UseWebApi(config);
+        }
+
+        private static bool ShouldTraceRequest(IOwinRequest request, IOwinResponse response)
+        {
+            // Avoid tracing '401 Forbidden' otherwise 50% of all requests show as failed requests
+            return response.StatusCode != 401;
         }
 
         public void Start(ILogger logger)
