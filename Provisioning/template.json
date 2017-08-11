@@ -20,14 +20,10 @@
         "virtualNetworkSubnetName": {
             "type": "string"
         },
-        "octopusNuGetFeedVersion": {
-            "type": "string",
-            "defaultValue": "latest"
-        },
         "installScript": {
-            "type":"string"
+            "type": "string"
         },
-        "timestamp":{
+        "timestamp": {
             "type": "string",
             "defaultValue": "#{Octopus.Deployment.CreatedUtc}"
         }
@@ -158,7 +154,7 @@
                     "fileUris": [
                         "[variables('scriptUri')]"
                     ],
-                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('scriptFileName'), ' -Version \"', parameters('octopusNuGetFeedVersion'), '\" -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\" -Timestamp \"', parameters('timestamp'), '\" -EncodedInstallScript \"', base64(parameters('installScript')), '\"')]"
+                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File \"', variables('scriptFileName'), '\" -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\" -Timestamp \"', parameters('timestamp'), '\" -EncodedInstallScript \"', base64(parameters('installScript')), '\"')]"
                 }
             }
         }
