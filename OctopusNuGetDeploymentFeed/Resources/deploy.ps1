@@ -415,7 +415,13 @@ class DeploymentController {
         }
 
         $formValuesToSet.Split("`n") | % {
-            $entry = $_.Split('=') | % Trim
+			$marker = $_.IndexOf('=')
+			if ($marker -eq -1) {
+				Write-Warning "Unable to parse form value, expected format 'Name = Value': $_"
+				return
+			}
+			$key = $_.Substring(0, $marker).TrimEnd()
+            $value = $_.Substring($marker + 1).TrimStart()
             $this.DeploymentPreview.Form.Elements | ? { $_.Control.Name -ieq $entry[0] } | % {
                 $logMessage = "Setting Form Value '$($_.Control.Label)' to: $($entry[1])"
                 if ($this.LogPrefix) { Write-Verbose "$($this.LogPrefix)$logMessage" }
