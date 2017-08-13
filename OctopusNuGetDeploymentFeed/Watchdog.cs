@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
@@ -19,7 +18,7 @@ namespace OctopusDeployNuGetFeed
         {
             _logger = logger;
         }
-        
+
         public void CreateTask()
         {
             _logger.Info($"Creating Scheduled Task: {TaskName}");
@@ -51,7 +50,7 @@ namespace OctopusDeployNuGetFeed
             TaskService.Instance.RootFolder.RegisterTaskDefinition(TaskName, task);
             _logger.Info("Scheduled Task has been created.");
         }
-        
+
         public void DeleteTask()
         {
             using (var taskService = new TaskService())

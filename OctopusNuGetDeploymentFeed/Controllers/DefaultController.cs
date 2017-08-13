@@ -25,6 +25,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         public IHttpActionResult Index()
         {
             return new PlainTextResult("Octopus - NuGet Deployment Feed\n" +
+                                       $"v{Program.Version}\n" +
                                        "by Paul Marston\n" +
                                        "https://github.com/paulmarsy/OctopusNuGetDeploymentFeed", Request);
         }

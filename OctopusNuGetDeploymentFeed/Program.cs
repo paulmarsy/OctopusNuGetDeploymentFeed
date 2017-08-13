@@ -30,6 +30,15 @@ namespace OctopusDeployNuGetFeed
         public static string BaseAddress => $"http://{Host}:{Port}/";
         private static string AppInsightsInstrumentationKey => Environment.GetEnvironmentVariable("AppInsightsInstrumentationKey");
 
+        public static string Version
+        {
+            get
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return $"{version.Major}.{version.Minor}.{version.Build}";
+            }
+        }
+
         private static int Main(string[] args)
         {
             var builder = new ContainerBuilder();
@@ -62,8 +71,7 @@ namespace OctopusDeployNuGetFeed
             }
             if (args.Length == 1 && args[0] == "version")
             {
-                var version = Assembly.GetExecutingAssembly().GetName().Version;
-                Console.Write($"{version.Major}.{version.Minor}.{version.Build}");
+                Console.Write(Version);
                 return 0;
             }
             return HostFactory.Run(c =>

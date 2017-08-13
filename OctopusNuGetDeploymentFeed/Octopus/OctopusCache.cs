@@ -99,7 +99,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), out ReleaseResource release))
                 return release;
-            
+
             return ListReleases(project).SingleOrDefault(package =>
             {
                 var packageVesion = package.Version.ToSemanticVersion();

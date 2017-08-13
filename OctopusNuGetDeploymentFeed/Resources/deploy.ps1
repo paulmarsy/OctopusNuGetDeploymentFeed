@@ -7,8 +7,8 @@ function Test-IsNominatedDeployer {
 	Write-Verbose "Octopus.Task.Id: $taskId"
 	$deploymentId = [int]$OctopusParameters['Octopus.Deployment.Id'].Split('-')[1]
 	Write-Verbose "Octopus.Deployment.Id: $deploymentId"
-	$creationTime = [datetime]::Parse($OctopusParameters['Octopus.Deployment.CreatedUtc']).TimeOfDay.TotalSeconds
-	Write-Verbose "Creation Time: $creationTime"
+	$creationTime = $OctopusParameters['Octopus.Deployment.CreatedUtc'].GetHashCode() -band 0xfff
+	Write-Verbose "Created Hash Code: $creationTime"
 
 	$randomSeed = $taskId + $deploymentId + $creationTime
 	Write-Verbose "Random Seed: $randomSeed"
