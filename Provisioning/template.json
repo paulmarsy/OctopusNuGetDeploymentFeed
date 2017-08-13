@@ -5,6 +5,10 @@
         "virtualMachineName": {
             "type": "string"
         },
+        "virtualMachineSize": {
+            "type": "string",
+            "defaultValue": "Standard_F2"
+        },
         "adminUsername": {
             "type": "string"
         },
@@ -34,7 +38,6 @@
         "networkInterfaceName": "[concat(parameters('virtualMachineName'), '-NIC')]",
         "appInsightsName": "[concat(parameters('virtualMachineName'), 'AppInsights')]",
         "networkSecurityGroupName": "[concat(parameters('virtualMachineName'), '-NSG')]",
-        "virtualMachineSize": "Standard_F2",
         "scriptUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Provisioning/install.ps1",
         "scriptFileName": "install.ps1"
     },
@@ -68,7 +71,7 @@
                     }
                 },
                 "hardwareProfile": {
-                    "vmSize": "[variables('virtualMachineSize')]"
+                    "vmSize": "[parameters('virtualMachineSize')]"
                 },
                 "storageProfile": {
                     "imageReference": {
