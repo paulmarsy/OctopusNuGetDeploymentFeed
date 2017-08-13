@@ -23,11 +23,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public OctopusCache(OctopusServer server, IAppInsights appInsights, ILogger logger)
         {
-            _cache = new MemoryCache(new MemoryCacheOptions
-            {
-                CompactOnMemoryPressure = true,
-                ExpirationScanFrequency = TimeSpan.FromMinutes(10)
-            });
+            _cache = new MemoryCache(new MemoryCacheOptions());
             _server = server;
             _appInsights = appInsights;
             _logger = logger;

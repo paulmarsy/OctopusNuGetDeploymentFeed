@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
 using ApplicationInsights.OwinExtensions;
@@ -57,16 +58,19 @@ namespace OctopusDeployNuGetFeed
                 }
             });
             if (Program.Container.Resolve<IAppInsights>().IsEnabled)
-                app.UseApplicationInsights(shouldTraceRequest: ShouldTraceRequest);
+                app.UseApplicationInsights(new RequestTrackingConfiguration
+                {
+                    ShouldTrackRequest = ShouldTrackRequest
+                });
 
             app.Use<BasicAuthentication>();
             app.UseWebApi(config);
         }
 
-        private static bool ShouldTraceRequest(IOwinRequest request, IOwinResponse response)
+        private static Task<bool> ShouldTrackRequest(IOwinContext owinContext)
         {
             // Avoid tracing '401 Forbidden' otherwise 50% of all requests show as failed requests
-            return response.StatusCode != 401;
+            return Task.FromResult(owinContext.Response.StatusCode != 401);
         }
 
         public void Start(ILogger logger)
