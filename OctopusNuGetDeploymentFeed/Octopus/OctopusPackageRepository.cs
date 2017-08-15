@@ -9,14 +9,12 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepository : IPackageRepository
     {
-        private readonly IAppInsights _appInsights;
         private readonly ILogger _logger;
         private readonly IOctopusCache _octopusCache;
         private readonly IOctopusServer _server;
 
-        public OctopusPackageRepository(IAppInsights appInsights, ILogger logger, IOctopusServer server, IOctopusCache octopusCache)
+        public OctopusPackageRepository(ILogger logger, IOctopusServer server, IOctopusCache octopusCache)
         {
-            _appInsights = appInsights;
             _logger = logger;
             _server = server;
             _octopusCache = octopusCache;
@@ -40,7 +38,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (channel == null)
                 return null;
 
-            return new ReleasePackage(_appInsights, _logger, _server, _octopusCache, project, release, channel);
+            return new ReleasePackage(_logger, _server, _octopusCache, project, release, channel);
         }
 
         public IEnumerable<INuGetPackage> FindOctopusReleasePackages(string name, CancellationToken token)
@@ -60,10 +58,18 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public IEnumerable<INuGetPackage> FindOctopusProjectPackages(string searchTerm, CancellationToken token)
         {
+            var found = false;
             foreach (var project in _octopusCache.GetAllProjects().Where(project => project.Name.WildcardMatch($"*{searchTerm}*")))
             {
                 token.ThrowIfCancellationRequested();
+                found = true;
                 yield return new SearchPackage(_logger, _server, project);
+            }
+            if (!found)
+            {
+                var project = _octopusCache.GetProject(searchTerm);
+                if (project != null)
+                    yield return new SearchPackage(_logger, _server, project);
             }
         }
 

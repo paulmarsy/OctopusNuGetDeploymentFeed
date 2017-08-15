@@ -1,17 +1,19 @@
 ﻿using System;
-using NuGet;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
-    public interface INuGetPackage : IPackageMetadata
+    public interface INuGetPackage
     {
-        bool Listed { get; }
-        int DownloadCount { get; }
-        long PackageSize { get; }
-        string PackageHash { get; }
-        string PackageHashAlgorithm { get; }
-        DateTimeOffset LastUpdated { get; }
-        DateTimeOffset Created { get; }
+        string Id { get; }
+        string Version { get; }
+        string Title { get; }
+        string Description { get; }
+        string Summary { get; }
+        string ReleaseNotes { get; }
+        bool IsAbsoluteLatestVersion { get; }
         bool IsLatestVersion { get; }
+        bool Listed { get; }
+        string Authors { get; }
+        DateTimeOffset? Published { get; }
     }
 }

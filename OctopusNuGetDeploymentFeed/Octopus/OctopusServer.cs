@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using Octopus.Client;
 using OctopusDeployNuGetFeed.DataServices;
+using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {

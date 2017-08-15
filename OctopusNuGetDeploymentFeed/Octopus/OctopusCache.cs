@@ -15,17 +15,15 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusCache : IOctopusCache
     {
         private readonly object _allProjectSyncLock = new object();
-        private readonly IAppInsights _appInsights;
         private readonly IMemoryCache _cache;
         private readonly ILogger _logger;
         private readonly OctopusServer _server;
         private readonly Timer _timer;
 
-        public OctopusCache(OctopusServer server, IAppInsights appInsights, ILogger logger)
+        public OctopusCache(OctopusServer server, ILogger logger)
         {
             _cache = new MemoryCache(new MemoryCacheOptions());
             _server = server;
-            _appInsights = appInsights;
             _logger = logger;
             _timer = new Timer(TimerHandler, null, 0, Timeout.Infinite);
         }
@@ -34,7 +32,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.JsonDocument, resource.Id), entry =>
             {
-                entry.SetPriority(CacheItemPriority.Low);
+                entry.SetAbsoluteExpiration(TimeSpan.FromDays(1));
                 using (var sourceStream = _server.Client.GetContent(resource.Link("Self")))
                 {
                     return sourceStream.ReadAllBytes();
@@ -65,51 +63,38 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.Channel, channelId), entry =>
             {
-                entry.SetPriority(CacheItemPriority.Low);
+                entry.SetAbsoluteExpiration(TimeSpan.FromDays(1));
                 return _server.Repository.Channels.Get(channelId);
             });
         }
 
         public IEnumerable<ReleaseResource> ListReleases(ProjectResource project)
         {
-            foreach (var release in _server.Repository.Projects.GetReleases(project).Items)
+            foreach (var release in _server.Repository.Projects.GetAllReleases(project))
             {
-                var version = release.Version.ToSemanticVersion();
-                if (version == null)
-                {
-                    _appInsights.TrackEvent("SemanticVersion.ParseError", new Dictionary<string, string>
-                    {
-                        {"Project", project.Name},
-                        {"Release", release.Version}
-                    });
+                var semver = release.Version.ToSemanticVersion();
+                if (semver == null)
                     continue;
-                }
-                yield return _cache.Set(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), release, new MemoryCacheEntryOptions
-                {
-                    SlidingExpiration = TimeSpan.FromHours(1)
-                });
+
+                yield return _cache.Set(CacheKey(CacheKeyType.Release, project.Id, semver.ToNormalizedString()), release, TimeSpan.FromHours(1));
             }
         }
 
-        public ReleaseResource GetRelease(ProjectResource project, SemanticVersion version)
+        public ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver)
         {
-            if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, version.ToNormalizedString()), out ReleaseResource release))
+            var version = semver.ToNormalizedString();
+            if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, version), out ReleaseResource release))
                 return release;
 
-            return ListReleases(project).SingleOrDefault(package =>
-            {
-                var packageVesion = package.Version.ToSemanticVersion();
-                return string.Equals(version.ToOriginalString(), packageVesion.ToOriginalString(), StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(version.ToNormalizedString(), packageVesion.ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(version.ToFullString(), packageVesion.ToFullString(), StringComparison.OrdinalIgnoreCase);
-            });
+            return ListReleases(project).SingleOrDefault(package => string.Equals(version, package.Version.ToSemanticVersion().ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
+                                                                    string.Equals(semver.ToOriginalString(), package.Version, StringComparison.OrdinalIgnoreCase));
         }
 
         public byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory)
         {
             return _cache.GetOrCreate(CacheKey(CacheKeyType.NuGetPackage, project.Id, release.Id), entry =>
             {
-                entry.SetSlidingExpiration(TimeSpan.FromHours(1));
+                entry.SetAbsoluteExpiration(TimeSpan.FromHours(1));
                 return nugetPackageFactory();
             });
         }

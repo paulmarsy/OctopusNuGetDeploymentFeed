@@ -4,8 +4,24 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
-    <AssemblyVersion>1.4.3.0</AssemblyVersion>
-    <FileVersion>1.4.3.0</FileVersion>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <FileVersion>1.6.0.0</FileVersion>
+    <Authors>Paul Marston</Authors>
+    <Product>Octopus Deploy - NuGet Deployment Feed</Product>
+    <Description>Octopus Deploy - NuGet Deployment Feed</Description>
+    <Company>Deep Thought Solutions</Company>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatSpecificWarningsAsErrors />
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatSpecificWarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,7 +46,7 @@
     <PackageReference Include="NETStandard.Library.NETFramework" Version="2.0.0-preview2-25405-01" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NuGet.Core" Version="2.14.0" />
-    <PackageReference Include="Octopus.Client" Version="4.22.0" />
+    <PackageReference Include="Octopus.Client" Version="4.22.1" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.4.0" />
     <PackageReference Include="System.ValueTuple" Version="4.4.0" />

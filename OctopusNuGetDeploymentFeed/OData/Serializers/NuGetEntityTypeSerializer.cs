@@ -10,6 +10,7 @@ using System.Web.Http.OData.Formatter.Serialization;
 using System.Web.Http.OData.Routing;
 using Microsoft.Data.OData;
 using Microsoft.Data.OData.Atom;
+using NuGet;
 using OctopusDeployNuGetFeed.DataServices;
 
 namespace OctopusDeployNuGetFeed.OData.Serializers
@@ -45,8 +46,6 @@ namespace OctopusDeployNuGetFeed.OData.Serializers
                 atomEntryMetadata.Title = instance.Id;
                 if (!string.IsNullOrEmpty(instance.Authors))
                     atomEntryMetadata.Authors = new[] {new AtomPersonMetadata {Name = instance.Authors}};
-                if (instance.LastUpdated > DateTime.MinValue)
-                    atomEntryMetadata.Updated = instance.LastUpdated;
                 if (instance.Published > DateTime.MinValue)
                     atomEntryMetadata.Published = instance.Published;
                 if (!string.IsNullOrEmpty(instance.Summary))
@@ -101,7 +100,7 @@ namespace OctopusDeployNuGetFeed.OData.Serializers
 
         private static List<ODataPathSegment> GetPackagePathSegments(ODataPackage package)
         {
-            var keyValue = "Id='" + package.Id + "',Version='" + RemoveVersionMetadata(package.Version) + "'";
+            var keyValue = "Id='" + package.Id + "',Version='" + SemanticVersion.Parse(package.Version).ToNormalizedString() + "'";
 
             var segments = new List<ODataPathSegment>
             {
@@ -110,15 +109,6 @@ namespace OctopusDeployNuGetFeed.OData.Serializers
             };
 
             return segments;
-        }
-
-        private static string RemoveVersionMetadata(string version)
-        {
-            var plusIndex = version.IndexOf('+');
-            if (plusIndex >= 0)
-                version = version.Substring(0, plusIndex);
-
-            return version;
         }
     }
 }

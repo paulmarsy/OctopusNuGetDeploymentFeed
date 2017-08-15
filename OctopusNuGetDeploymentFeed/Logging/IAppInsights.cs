@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.ApplicationInsights.DataContracts;
 
-namespace OctopusDeployNuGetFeed
+namespace OctopusDeployNuGetFeed.Logging
 {
     public interface IAppInsights
     {

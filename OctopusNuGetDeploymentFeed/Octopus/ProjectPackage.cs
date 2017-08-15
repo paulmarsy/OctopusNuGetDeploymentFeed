@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
-using SemanticVersion = NuGet.SemanticVersion;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
@@ -12,18 +10,19 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// </summary>
     public class ProjectPackage : SearchPackage
     {
-        public ProjectPackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, bool isLatest) : base(logger, server, project, SemanticVersion.Parse(release.Version))
+        public ProjectPackage(ILogger logger, IOctopusServer server, ProjectResource project, ReleaseResource release, bool isLatest) : base(logger, server, project, release.Version)
         {
             Release = release;
             IsLatestVersion = isLatest;
+            IsAbsoluteLatestVersion = isLatest;
         }
 
+        public override string Version => Release.Version;
         protected ReleaseResource Release { get; }
         public override bool IsLatestVersion { get; }
-        public override DateTimeOffset LastUpdated => Release.LastModifiedOn.GetValueOrDefault();
-        public override DateTimeOffset Created => Release.Assembled;
-        public override IEnumerable<string> Authors => new[] {Release.LastModifiedBy ?? "Unknown"};
-
+        public override bool IsAbsoluteLatestVersion { get; }
+        public override DateTimeOffset? Published => Release.Assembled;
+        public override string Authors => Release.LastModifiedBy ?? "Unknown";
         public override string ReleaseNotes => Release.ReleaseNotes;
     }
 }

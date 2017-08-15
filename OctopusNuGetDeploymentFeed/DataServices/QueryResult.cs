@@ -16,8 +16,7 @@ using Microsoft.Data.OData.Query;
 
 namespace OctopusDeployNuGetFeed.DataServices
 {
-    public class QueryResult<TModel>
-        : IHttpActionResult
+    public class QueryResult<TModel> : IHttpActionResult
     {
         private static readonly ODataQuerySettings DefaultQuerySettings = new ODataQuerySettings
         {

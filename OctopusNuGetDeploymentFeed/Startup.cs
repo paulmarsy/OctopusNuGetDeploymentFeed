@@ -42,16 +42,18 @@ namespace OctopusDeployNuGetFeed
 
 
             config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(Program.Container.Resolve<ILogger>()));
-
+            var logger = Program.Container.Resolve<ILogger>();
             app.Use(async (ctx, next) =>
             {
                 try
                 {
+                    logger.Info($"{ctx.Request.Method} {ctx.Request.Uri}");
+
                     await next();
                 }
                 catch (Exception e)
                 {
-                    Program.Container.Resolve<ILogger>().UnhandledException(e);
+                    logger.UnhandledException(e);
 #if DEBUG
                     throw;
 #endif

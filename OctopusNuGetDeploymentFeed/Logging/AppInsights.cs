@@ -9,7 +9,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 
-namespace OctopusDeployNuGetFeed
+namespace OctopusDeployNuGetFeed.Logging
 {
     public class AppInsights : IAppInsights
     {

@@ -14,10 +14,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 {
     public static class NuGetV2WebApiEnabler
     {
-        public static HttpConfiguration UseNuGetV2WebApiFeed(this HttpConfiguration config,
-            string routeName,
-            string routeUrlRoot,
-            string oDatacontrollerName)
+        public static HttpConfiguration UseNuGetV2WebApiFeed(this HttpConfiguration config, string routeName, string routeUrlRoot, string oDatacontrollerName)
         {
             // Insert conventions to make NuGet-compatible OData feed possible
             var conventions = ODataRoutingConventions.CreateDefault();
@@ -41,10 +38,11 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 
         internal static IEdmModel BuildNuGetODataModel()
         {
-            var builder = new ODataConventionModelBuilder();
-
-            builder.DataServiceVersion = new Version(2, 0);
-            builder.MaxDataServiceVersion = builder.DataServiceVersion;
+            var builder = new ODataConventionModelBuilder
+            {
+                DataServiceVersion = new Version(2, 0),
+                MaxDataServiceVersion = new Version(2, 0)
+            };
 
             var packagesCollection = builder.EntitySet<ODataPackage>("Packages");
             packagesCollection.EntityType.HasKey(pkg => pkg.Id);
@@ -54,22 +52,12 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 
             var searchAction = builder.Action("Search");
             searchAction.Parameter<string>("searchTerm");
-            searchAction.Parameter<string>("targetFramework");
             searchAction.Parameter<bool>("includePrerelease");
             searchAction.ReturnsCollectionFromEntitySet(packagesCollection);
 
             var findPackagesAction = builder.Action("FindPackagesById");
             findPackagesAction.Parameter<string>("id");
             findPackagesAction.ReturnsCollectionFromEntitySet(packagesCollection);
-
-            var getUpdatesAction = builder.Action("GetUpdates");
-            getUpdatesAction.Parameter<string>("packageIds");
-            getUpdatesAction.Parameter<string>("versions");
-            getUpdatesAction.Parameter<bool>("includePrerelease");
-            getUpdatesAction.Parameter<bool>("includeAllVersions");
-            getUpdatesAction.Parameter<string>("targetFrameworks");
-            getUpdatesAction.Parameter<string>("versionConstraints");
-            getUpdatesAction.ReturnsCollectionFromEntitySet(packagesCollection);
 
             var retValue = builder.GetEdmModel();
             retValue.SetHasDefaultStream(retValue.FindDeclaredType(typeof(ODataPackage).FullName) as IEdmEntityType, true);

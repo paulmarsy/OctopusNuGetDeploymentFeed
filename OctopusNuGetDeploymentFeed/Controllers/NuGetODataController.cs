@@ -9,7 +9,6 @@ using System.Web.Http;
 using System.Web.Http.OData;
 using System.Web.Http.OData.Query;
 using OctopusDeployNuGetFeed.DataServices;
-using OctopusDeployNuGetFeed.Infrastructure;
 using OctopusDeployNuGetFeed.OData;
 
 namespace OctopusDeployNuGetFeed.Controllers
@@ -20,7 +19,6 @@ namespace OctopusDeployNuGetFeed.Controllers
     {
         private const int MaxPageSize = 25;
         private readonly IPackageRepositoryFactory _packageRepositoryFactory;
-
 
         public NuGetODataController(IPackageRepositoryFactory packageRepositoryFactory)
         {
@@ -39,7 +37,7 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (package == null)
                 return NotFound();
 
-            return TransformToQueryResult(options, new[] {package}, ClientCompatibility.Max).FormattedAsSingleResult<ODataPackage>();
+            return TransformToQueryResult(options, new[] {package}).FormattedAsSingleResult<ODataPackage>();
         }
 
         // GET/POST /FindPackagesById()?id=
@@ -56,20 +54,7 @@ namespace OctopusDeployNuGetFeed.Controllers
 
             var sourceQuery = serverRepository.FindOctopusReleasePackages(id, token);
 
-            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel));
-        }
-
-
-        // GET /Packages(Id=,Version=)/propertyName
-        [HttpGet]
-        public IHttpActionResult GetPropertyFromPackages(string propertyName, string id, string version)
-        {
-            switch (propertyName.ToLowerInvariant())
-            {
-                case "id": return Ok(id);
-                case "version": return Ok(version);
-                default: return BadRequest($"Querying property {propertyName} is not supported.");
-            }
+            return TransformToQueryResult(options, sourceQuery);
         }
 
         // GET/POST /Search()?searchTerm=&targetFramework=&includePrerelease=
@@ -83,23 +68,8 @@ namespace OctopusDeployNuGetFeed.Controllers
 
             var sourceQuery = serverRepository.FindOctopusProjectPackages(searchTerm, token);
 
-            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel));
+            return TransformToQueryResult(options, sourceQuery);
         }
-
-        // GET /Search()/$count?searchTerm=&targetFramework=&includePrerelease=
-        [HttpGet]
-        public IHttpActionResult SearchCount(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
-        {
-            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
-            if (!serverRepository.IsAuthenticated)
-                return StatusCode(HttpStatusCode.Forbidden);
-
-            var sourceQuery = serverRepository.FindOctopusProjectPackages(searchTerm, token);
-
-            return TransformToQueryResult(options, sourceQuery, ClientCompatibilityFactory.FromProperties(semVerLevel))
-                .FormattedAsCountResult<ODataPackage>();
-        }
-
 
         // Exposed as OData Action for specific entity GET/HEAD /Packages(Id=,Version=)/Download
         [HttpGet]
@@ -122,12 +92,11 @@ namespace OctopusDeployNuGetFeed.Controllers
                 responseMessage.Content = new StringContent(string.Empty);
 
             responseMessage.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("binary/octet-stream");
-            responseMessage.Content.Headers.LastModified = requestedPackage.LastUpdated;
-            responseMessage.Headers.ETag = new EntityTagHeaderValue($"\"{requestedPackage.PackageHash}\"");
+            responseMessage.Content.Headers.LastModified = requestedPackage.Published;
 
             responseMessage.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue(DispositionTypeNames.Attachment)
             {
-                FileName = $"{requestedPackage.Id}.{requestedPackage.Version}{Constants.PackageExtension}",
+                FileName = $"{requestedPackage.Id}.{requestedPackage.Version}.{Constants.PackageExtension}",
                 Size = requestedPackage.PackageSize,
                 ModificationDate = responseMessage.Content.Headers.LastModified
             };
@@ -140,9 +109,27 @@ namespace OctopusDeployNuGetFeed.Controllers
             return new QueryResult<TModel>(options, queryable, this, maxPageSize);
         }
 
-        private IHttpActionResult TransformToQueryResult(ODataQueryOptions<ODataPackage> options, IEnumerable<INuGetPackage> sourceQuery, ClientCompatibility compatibility)
+        private IHttpActionResult TransformToQueryResult(ODataQueryOptions<ODataPackage> options, IEnumerable<INuGetPackage> sourceQuery)
         {
-            return QueryResult(options, sourceQuery.Distinct().Select(x => x.AsODataPackage(compatibility)).AsQueryable(), MaxPageSize);
+            return QueryResult(options, sourceQuery.Distinct().Select(AsODataPackage).AsQueryable(), MaxPageSize);
+        }
+
+        private static ODataPackage AsODataPackage(INuGetPackage package)
+        {
+            return new ODataPackage
+            {
+                Id = package.Id,
+                Version = package.Version,
+                Summary = package.Summary,
+                IsAbsoluteLatestVersion = package.IsAbsoluteLatestVersion,
+                IsLatestVersion = package.IsLatestVersion,
+                Published = package.Published,
+                Authors = package.Authors,
+                Description = package.Description,
+                Listed = package.Listed,
+                ReleaseNotes = package.ReleaseNotes,
+                Title = package.Title
+            };
         }
     }
 }

@@ -12,7 +12,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         ChannelResource GetChannel(string channelId);
         IEnumerable<ReleaseResource> ListReleases(ProjectResource project);
         byte[] GetJson(Resource resource);
-        ReleaseResource GetRelease(ProjectResource project, SemanticVersion version);
+        ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver);
         byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory);
     }
 }
