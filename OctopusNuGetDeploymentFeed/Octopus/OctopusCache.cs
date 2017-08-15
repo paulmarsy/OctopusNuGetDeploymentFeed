@@ -82,12 +82,12 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver)
         {
-            var version = semver.ToNormalizedString();
-            if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, version), out ReleaseResource release))
+            if (_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, semver.ToNormalizedString()), out ReleaseResource release))
                 return release;
 
-            return ListReleases(project).SingleOrDefault(package => string.Equals(version, package.Version.ToSemanticVersion().ToNormalizedString(), StringComparison.OrdinalIgnoreCase) ||
-                                                                    string.Equals(semver.ToOriginalString(), package.Version, StringComparison.OrdinalIgnoreCase));
+            // Try for an exact match, failing that go for a normalized match
+            return ListReleases(project).SingleOrDefault(package => string.Equals(semver.ToOriginalString(), package.Version, StringComparison.OrdinalIgnoreCase)) ??
+                   ListReleases(project).FirstOrDefault(package => string.Equals(semver.ToNormalizedString(), package.Version.ToSemanticVersion().ToNormalizedString(), StringComparison.OrdinalIgnoreCase));
         }
 
         public byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory)

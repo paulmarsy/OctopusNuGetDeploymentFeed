@@ -10,7 +10,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     /// </summary>
     public class SearchPackage : INuGetPackage
     {
-        public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project) : this(logger, server, project, "0")
+        public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project) : this(logger, server, project, "0.0.0")
         {
         }
 
