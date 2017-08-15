@@ -22,3 +22,5 @@ A NuGet feed of Octopus Deploy releases. Generates NuGet packages used to trigge
 ![Octopus - Deployment Process - Add Deploy Package Step](/Images/package-step.png)
 
 4. Deploy!
+
+![Octopus - Deployment](/Images/deploy.png)
