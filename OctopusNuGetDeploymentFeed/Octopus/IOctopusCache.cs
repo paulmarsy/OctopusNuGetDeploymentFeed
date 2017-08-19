@@ -14,5 +14,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         byte[] GetJson(Resource resource);
         ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver);
         byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory);
+        ProjectResource TryGetProject(string name);
+        ReleaseResource GetLatestRelease(ProjectResource project);
     }
 }

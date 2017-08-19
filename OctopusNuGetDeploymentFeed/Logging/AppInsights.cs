@@ -138,6 +138,11 @@ namespace OctopusDeployNuGetFeed.Logging
             _telemetryClient.TrackException(exception, properties);
         }
 
+        public void TrackMetric(string name, double value)
+        {
+            _telemetryClient.TrackMetric(name, value);
+        }
+
         private void UseQuickPulse()
         {
             var quickPulseModule = new QuickPulseTelemetryModule();

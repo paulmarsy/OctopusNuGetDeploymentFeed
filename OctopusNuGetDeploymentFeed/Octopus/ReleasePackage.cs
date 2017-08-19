@@ -109,7 +109,7 @@ namespace OctopusDeployNuGetFeed.Octopus
                                                             "<metadata>" +
                                                             $"<id>{SecurityElement.Escape(SemanticPackageId)}</id>" +
                                                             $"<version>{SecurityElement.Escape(Version)}</version>" +
-                                                            $"<description>{SecurityElement.Escape(Description)}</description>" +
+                                                            $"<description>{SecurityElement.Escape(Summary)}</description>" +
                                                             $"<authors>{SecurityElement.Escape(Authors)}</authors>" +
                                                             "</metadata>" +
                                                             "</package>");

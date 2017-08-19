@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Autofac;
 using Autofac.Integration.WebApi;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Caching.Memory;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
@@ -53,6 +54,7 @@ namespace OctopusDeployNuGetFeed
             builder.RegisterType<Watchdog>().AsSelf();
             builder.RegisterType<Startup>().AsSelf();
 
+            builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions())).AsSelf().As<IMemoryCache>();
             builder.RegisterType<OctopusPackageRepositoryFactory>().As<IPackageRepositoryFactory>().SingleInstance();
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 

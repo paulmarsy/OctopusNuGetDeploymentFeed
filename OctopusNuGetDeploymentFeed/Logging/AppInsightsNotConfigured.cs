@@ -31,5 +31,9 @@ namespace OctopusDeployNuGetFeed.Logging
         public void TrackException(Exception exception, IDictionary<string, string> properties = null)
         {
         }
+
+        public void TrackMetric(string name, double value)
+        {
+        }
     }
 }

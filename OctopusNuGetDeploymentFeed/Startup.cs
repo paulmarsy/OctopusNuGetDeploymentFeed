@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
@@ -24,6 +25,7 @@ namespace OctopusDeployNuGetFeed
         {
             var config = new HttpConfiguration();
             config.DependencyResolver = new AutofacWebApiDependencyResolver(Program.Container);
+            config.Formatters.JsonFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("text/html"));
 
             config.Routes.MapHttpRoute(
                 "HomePage",
@@ -39,7 +41,6 @@ namespace OctopusDeployNuGetFeed
                 "Default",
                 "{*uri}",
                 new {controller = "Default", uri = RouteParameter.Optional});
-
 
             config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(Program.Container.Resolve<ILogger>()));
             var logger = Program.Container.Resolve<ILogger>();

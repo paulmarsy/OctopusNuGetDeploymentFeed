@@ -14,7 +14,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
         }
 
-        public SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project, string version)
+        protected SearchPackage(ILogger logger, IOctopusServer server, ProjectResource project, string version)
         {
             Logger = logger;
             Server = server;

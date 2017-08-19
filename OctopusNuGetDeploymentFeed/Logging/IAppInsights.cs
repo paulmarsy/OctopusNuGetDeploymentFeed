@@ -13,5 +13,6 @@ namespace OctopusDeployNuGetFeed.Logging
         void TrackEvent(string eventName, IDictionary<string, string> properties = null);
         void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success);
         void TrackException(Exception exception, IDictionary<string, string> properties = null);
+        void TrackMetric(string name, double value);
     }
 }

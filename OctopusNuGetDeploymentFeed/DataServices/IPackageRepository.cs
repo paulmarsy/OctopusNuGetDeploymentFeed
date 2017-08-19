@@ -6,8 +6,8 @@ namespace OctopusDeployNuGetFeed.DataServices
     public interface IPackageRepository
     {
         bool IsAuthenticated { get; }
-        IEnumerable<INuGetPackage> FindOctopusReleasePackages(string name, CancellationToken token);
-        IDownloadableNuGetPackage GetOctopusReleasePackage(string name, string version, CancellationToken token);
-        IEnumerable<INuGetPackage> FindOctopusProjectPackages(string searchTerm, CancellationToken token);
+        IEnumerable<INuGetPackage> FindProjectReleases(string projectName, CancellationToken token);
+        IDownloadableNuGetPackage GetRelease(string projectName, string version, CancellationToken token);
+        IEnumerable<INuGetPackage> FindProjects(string searchTerm, CancellationToken token);
     }
 }

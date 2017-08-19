@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
+using Microsoft.Extensions.Caching.Memory;
 using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 
@@ -12,12 +13,14 @@ namespace OctopusDeployNuGetFeed.Octopus
     {
         private readonly IAppInsights _appInsights;
         private readonly ILogger _logger;
+        private readonly MemoryCache _memoryCache;
         private readonly IDictionary<(string baseUrl, string apiKey), IPackageRepository> _repositories = new ConcurrentDictionary<(string, string), IPackageRepository>();
 
-        public OctopusPackageRepositoryFactory(ILogger logger, IAppInsights appInsights)
+        public OctopusPackageRepositoryFactory(ILogger logger, IAppInsights appInsights, MemoryCache memoryCache)
         {
             _logger = logger;
             _appInsights = appInsights;
+            _memoryCache = memoryCache;
         }
 
         public IPackageRepository GetPackageRepository(IPrincipal user)
@@ -47,7 +50,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (_repositories.ContainsKey(context))
                 return;
 
-            var server = new OctopusServer(_appInsights, context.baseUrl, context.apiKey);
+            var server = new OctopusServer(_appInsights, _logger, context.baseUrl, context.apiKey);
 
             var authenticated = server.IsAuthenticated;
             _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
@@ -61,7 +64,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             server.ConfigureAppInsightsDependencyTracking();
 
-            var cache = new OctopusCache(server, _logger);
+            var cache = new OctopusCache(server, _logger, _memoryCache, _appInsights);
             var repository = new OctopusPackageRepository(_logger, server, cache);
             _repositories[context] = repository;
         }

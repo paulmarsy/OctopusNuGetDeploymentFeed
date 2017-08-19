@@ -257,7 +257,7 @@ class DeploymentContext {
         }
         $this.WaitForDeployment = $false
         if ($deploySchedule -eq 'NoWait') {
-            Write-Host 'Deployment will be queued to start immediatley...'
+            Write-Host 'Deployment will be queued to start immediately...'
             return
         }
         <#
@@ -422,11 +422,11 @@ class DeploymentController {
 			}
 			$key = $_.Substring(0, $marker).TrimEnd()
             $value = $_.Substring($marker + 1).TrimStart()
-            $this.DeploymentPreview.Form.Elements | ? { $_.Control.Name -ieq $entry[0] } | % {
-                $logMessage = "Setting Form Value '$($_.Control.Label)' to: $($entry[1])"
+            $this.DeploymentPreview.Form.Elements | ? { $_.Control.Name -ieq $key } | % {
+                $logMessage = "Setting Form Value '$($_.Control.Label)' to: $($value)"
                 if ($this.LogPrefix) { Write-Verbose "$($this.LogPrefix)$logMessage" }
                 else { Write-Host $logMessage }
-                $this.FormValues[$_.Name] = $entry[1]
+                $this.FormValues[$_.Name] = $value
             }
         }
     }

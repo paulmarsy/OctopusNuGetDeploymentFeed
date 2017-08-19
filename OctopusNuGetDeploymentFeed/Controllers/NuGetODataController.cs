@@ -33,7 +33,10 @@ namespace OctopusDeployNuGetFeed.Controllers
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
-            var package = serverRepository.GetOctopusReleasePackage(id, version, token);
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(version))
+                return BadRequest();
+
+            var package = serverRepository.GetRelease(id, version, token);
             if (package == null)
                 return NotFound();
 
@@ -43,16 +46,16 @@ namespace OctopusDeployNuGetFeed.Controllers
         // GET/POST /FindPackagesById()?id=
         [HttpGet]
         [HttpPost]
-        public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
+        public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, CancellationToken token = default(CancellationToken))
         {
             var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
             if (string.IsNullOrEmpty(id))
-                return QueryResult(options, Enumerable.Empty<ODataPackage>().AsQueryable(), MaxPageSize);
+                return BadRequest();
 
-            var sourceQuery = serverRepository.FindOctopusReleasePackages(id, token);
+            var sourceQuery = serverRepository.FindProjectReleases(id, token);
 
             return TransformToQueryResult(options, sourceQuery);
         }
@@ -60,13 +63,13 @@ namespace OctopusDeployNuGetFeed.Controllers
         // GET/POST /Search()?searchTerm=&targetFramework=&includePrerelease=
         [HttpGet]
         [HttpPost]
-        public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] string targetFramework = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, [FromUri] string semVerLevel = "", CancellationToken token = default(CancellationToken))
+        public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, CancellationToken token = default(CancellationToken))
         {
             var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
                 return StatusCode(HttpStatusCode.Forbidden);
 
-            var sourceQuery = serverRepository.FindOctopusProjectPackages(searchTerm, token);
+            var sourceQuery = serverRepository.FindProjects(searchTerm, token).Where(package => package.Listed || package.Listed == false && includeDelisted);
 
             return TransformToQueryResult(options, sourceQuery);
         }
@@ -74,15 +77,18 @@ namespace OctopusDeployNuGetFeed.Controllers
         // Exposed as OData Action for specific entity GET/HEAD /Packages(Id=,Version=)/Download
         [HttpGet]
         [HttpHead]
-        public HttpResponseMessage Download(string id, string version = "", CancellationToken token = default(CancellationToken))
+        public HttpResponseMessage Download(string id, string version, CancellationToken token = default(CancellationToken))
         {
             var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
             if (!serverRepository.IsAuthenticated)
-                return Request.CreateErrorResponse(HttpStatusCode.Forbidden, "Not authenticated");
+                return Request.CreateResponse(HttpStatusCode.Forbidden);
 
-            var requestedPackage = serverRepository.GetOctopusReleasePackage(id, version, token);
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(version))
+                return Request.CreateResponse(HttpStatusCode.BadRequest);
+
+            var requestedPackage = serverRepository.GetRelease(id, version, token);
             if (requestedPackage == null)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, $"'Package {id} {version}' Not found.");
+                return Request.CreateResponse(HttpStatusCode.NotFound);
 
             var responseMessage = Request.CreateResponse(HttpStatusCode.OK);
 
@@ -104,14 +110,9 @@ namespace OctopusDeployNuGetFeed.Controllers
             return responseMessage;
         }
 
-        private IHttpActionResult QueryResult<TModel>(ODataQueryOptions<TModel> options, IQueryable<TModel> queryable, int maxPageSize)
-        {
-            return new QueryResult<TModel>(options, queryable, this, maxPageSize);
-        }
-
         private IHttpActionResult TransformToQueryResult(ODataQueryOptions<ODataPackage> options, IEnumerable<INuGetPackage> sourceQuery)
         {
-            return QueryResult(options, sourceQuery.Distinct().Select(AsODataPackage).AsQueryable(), MaxPageSize);
+            return new QueryResult<ODataPackage>(options, sourceQuery.Distinct().Select(AsODataPackage).AsQueryable(), this, MaxPageSize);
         }
 
         private static ODataPackage AsODataPackage(INuGetPackage package)
