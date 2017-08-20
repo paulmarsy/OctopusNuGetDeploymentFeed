@@ -14,13 +14,7 @@ namespace OctopusDeployNuGetFeed.Logging
     public class AppInsights : IAppInsights
     {
         private static readonly string[] PerformanceCounters =
-        {
-            @"\.NET Memory Cache 4.0(*)\Cache Hits",
-            @"\.NET Memory Cache 4.0(*)\Cache Misses",
-            @"\.NET Memory Cache 4.0(*)\Cache Hit Ratio",
-            @"\.NET Memory Cache 4.0(*)\Cache Trims",
-            @"\.NET Memory Cache 4.0(*)\Cache Entries",
-            @"\.NET Memory Cache 4.0(*)\Cache Turnover Rate",
+       {
             @"\Processor(_Total)\% Processor Time",
             $"\\Process({Process.GetCurrentProcess().ProcessName})\\% Processor Time",
             $"\\Process({Process.GetCurrentProcess().ProcessName})\\Private Bytes",
@@ -29,7 +23,6 @@ namespace OctopusDeployNuGetFeed.Logging
             @"\.NET CLR Loading(_Global_)\% Time Loading",
             @"\.NET CLR LocksAndThreads(_Global_)\Contention Rate / sec",
             @"\.NET CLR Memory(_Global_)\# Bytes in all Heaps",
-            @"\.NET CLR Networking(_Global_)\Connections Established",
             @"\.NET CLR Remoting(_Global_)\Remote Calls/sec",
             @"\.NET CLR Jit(_Global_)\% Time in Jit",
             "\\Processor Information(_Total)\\% Processor Time",
@@ -68,15 +61,7 @@ namespace OctopusDeployNuGetFeed.Logging
             "\\LogicalDisk(_Total)\\Avg. Disk Read Queue Length",
             "\\LogicalDisk(_Total)\\Avg. Disk Write Queue Length",
             "\\LogicalDisk(_Total)\\% Free Space",
-            "\\LogicalDisk(_Total)\\Free Megabytes",
-            "\\Network Interface(*)\\Bytes Total/sec",
-            "\\Network Interface(*)\\Bytes Sent/sec",
-            "\\Network Interface(*)\\Bytes Received/sec",
-            "\\Network Interface(*)\\Packets/sec",
-            "\\Network Interface(*)\\Packets Sent/sec",
-            "\\Network Interface(*)\\Packets Received/sec",
-            "\\Network Interface(*)\\Packets Outbound Errors",
-            "\\Network Interface(*)\\Packets Received Errors"
+            "\\LogicalDisk(_Total)\\Free Megabytes"
         };
 
         private readonly string _instrumentationKey;
