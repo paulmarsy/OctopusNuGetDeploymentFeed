@@ -28,7 +28,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         private readonly MemoryCache _cache;
         private readonly SizedReference _cacheSizeRef;
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<(CacheKeyType type, string id), (DateTimeOffset lastAccess, DateTimeOffset lastUpdate)> _preloadRegistry;
+        private readonly ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheKeyType type, object state)> _preloadRegistry = new ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheKeyType type, object state)>();
         private readonly OctopusServer _server;
         private readonly Timer _timer;
         private CancellationTokenSource _projectEvictionTokenSource;
@@ -39,9 +39,8 @@ namespace OctopusDeployNuGetFeed.Octopus
             _logger = logger;
             _cache = new MemoryCache(new MemoryCacheOptions());
             _cacheSizeRef = new SizedReference(_cache);
-            _preloadRegistry = new ConcurrentDictionary<(CacheKeyType, string), (DateTimeOffset lastAccess, DateTimeOffset lastUpdate)>();
-            _timer = new Timer(TimerHandler, null, 0, Timeout.Infinite);
             _projectEvictionTokenSource = new CancellationTokenSource();
+            _timer = new Timer(TimerHandler, null, TimeSpan.Zero, Timeout.InfiniteTimeSpan);
         }
 
         public void Dispose()
@@ -55,6 +54,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             return _cache.Get<ProjectResource>(CacheKey(CacheKeyType.Project, name));
         }
 
+        public int Preloads { get; private set; } = 0;
         public int Count => _cache.Count;
         public long ApproximateSize => _cacheSizeRef.ApproximateSize;
 
@@ -73,11 +73,11 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public byte[] GetJson(Resource resource)
         {
-            RegisterPreloadAccess(CacheKeyType.JsonDocument, resource.Link("Self"), false);
+            RegisterPreloadAccess(CacheKeyType.JsonDocument, false, resource.Link("Self"), resource.Link("Self"));
 
             return _cache.GetOrCreate(CacheKey(CacheKeyType.JsonDocument, resource.Link("Self")), entry =>
             {
-                RegisterPreloadAccess(CacheKeyType.JsonDocument, resource.Link("Self"), true);
+                RegisterPreloadAccess(CacheKeyType.JsonDocument, true, resource.Link("Self"), resource.Link("Self"));
                 entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.JsonDocument]);
                 using (var sourceStream = _server.GetClient($"GetJson: {resource.Link("Self")}").GetContent(resource.Link("Self")))
                 {
@@ -107,11 +107,11 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public ChannelResource GetChannel(string channelId)
         {
-            RegisterPreloadAccess(CacheKeyType.Channel, channelId, false);
+            RegisterPreloadAccess(CacheKeyType.Channel, false, channelId, channelId);
 
             return _cache.GetOrCreate(CacheKey(CacheKeyType.Channel, channelId), entry =>
             {
-                RegisterPreloadAccess(CacheKeyType.Channel, channelId, true);
+                RegisterPreloadAccess(CacheKeyType.Channel, true, channelId, channelId);
                 entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.Channel]);
                 return _server.GetRepository($"GetChannel: {channelId}").Channels.Get(channelId);
             });
@@ -146,7 +146,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (release == null)
                 return null;
 
-            RegisterPreloadAccess(CacheKeyType.Release, release.Id, false);
+            RegisterPreloadAccess(CacheKeyType.Release, false, (project, release.Version), project.Id, semver.ToNormalizedString());
             return release;
         }
 
@@ -160,10 +160,10 @@ namespace OctopusDeployNuGetFeed.Octopus
         }
 
 
-        private void RegisterPreloadAccess(CacheKeyType type, string id, bool updated)
+        private void RegisterPreloadAccess(CacheKeyType type, bool updated, object state, params string[] id)
         {
-            var lastUpdate = _preloadRegistry.ContainsKey((type, id)) && !updated ? _preloadRegistry[(type, id)].lastUpdate : DateTimeOffset.UtcNow;
-            _preloadRegistry[(type, id)] = (lastAccess: DateTimeOffset.UtcNow, lastUpdate: lastUpdate);
+            var lastUpdate = _preloadRegistry.ContainsKey(CacheKey(type, id)) && !updated ? _preloadRegistry[CacheKey(type, id)].lastUpdate : DateTimeOffset.UtcNow;
+            _preloadRegistry[CacheKey(type, id)] = (lastAccess: DateTimeOffset.UtcNow, lastUpdate: lastUpdate, type: type, state: state);
         }
 
         private static string CacheKey(CacheKeyType type, params string[] id)
@@ -171,23 +171,23 @@ namespace OctopusDeployNuGetFeed.Octopus
             return $"{type}:{string.Join(";", id.Select(x => x.ToLowerInvariant()))}";
         }
 
-        private void TimerHandler(object state)
+        private void TimerHandler(object callbackState)
         {
             try
             {
                 LoadAllProjects(_projectEvictionTokenSource);
                 foreach (var entry in _preloadRegistry)
                 {
-                    _logger.Verbose($"Checking Preload {entry.Key.type}: {entry.Key.id}");
+                    _logger.Verbose($"Checking Preload: {entry.Key}");
                     TimeSpan preloadDuration;
-                    Func<string, object> preloadAction;
-                    switch (entry.Key.type)
+                    Func<object,object> preloadAction;
+                    switch (entry.Value.type)
                     {
                         case CacheKeyType.JsonDocument:
                             preloadDuration = TimeSpan.FromDays(2);
-                            preloadAction = resourceUrl =>
+                            preloadAction = state =>
                             {
-                                using (var sourceStream = _server.GetClient($"Preload JsonDocument: {entry.Key.id}").GetContent(resourceUrl))
+                                using (var sourceStream = _server.GetClient($"Preload JsonDocument: {entry.Key}").GetContent((string)state))
                                 {
                                     return sourceStream.ReadAllBytes();
                                 }
@@ -195,11 +195,15 @@ namespace OctopusDeployNuGetFeed.Octopus
                             break;
                         case CacheKeyType.Release:
                             preloadDuration = TimeSpan.FromDays(2);
-                            preloadAction = id => _server.GetRepository($"Preload Release: {entry.Key.id}").Releases.Get(id);
+                            preloadAction = state =>
+                            {
+                                var castState = ((ProjectResource, string)) state;
+                                return _server.GetRepository($"Preload Release: {entry.Key}").Projects.GetReleaseByVersion(castState.Item1, castState.Item2);
+                            };
                             break;
                         case CacheKeyType.Channel:
                             preloadDuration = TimeSpan.FromDays(7);
-                            preloadAction = id => _server.GetRepository($"Preload Channel: {entry.Key.id}").Channels.Get(id);
+                            preloadAction = state => _server.GetRepository($"Preload Channel: {entry.Key}").Channels.Get((string)state);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
@@ -207,8 +211,28 @@ namespace OctopusDeployNuGetFeed.Octopus
 
                     if (DateTimeOffset.UtcNow - entry.Value.lastAccess >= preloadDuration)
                         _preloadRegistry.TryRemove(entry.Key, out _);
-                    else if (DateTimeOffset.UtcNow - entry.Value.lastUpdate >= CacheTime[entry.Key.type])
-                        _cache.Set(CacheKey(entry.Key.type, entry.Key.id), preloadAction(entry.Key.id), CacheTime[entry.Key.type].Add(TimeSpan.FromHours(1)));
+                    else if (DateTimeOffset.UtcNow - entry.Value.lastUpdate >= CacheTime[entry.Value.type])
+                    {
+                        object value = null;
+                        try
+                        {
+                            value = preloadAction(entry.Value.state);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Exception(e);
+                        }
+                        if (value == null)
+                        {
+                            _preloadRegistry.TryRemove(entry.Key, out _);
+                        }
+                        else
+                        {
+                            _cache.Set(entry.Key, value, CacheTime[entry.Value.type]);
+                            _preloadRegistry[entry.Key] = (lastAccess: entry.Value.lastAccess, lastUpdate: DateTimeOffset.UtcNow,type: entry.Value.type, state: entry.Value.state);
+                            Preloads++;
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -230,7 +254,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             if (interval == 0)
                 interval = 60 * 60 * 1000;
-
+      
             return interval;
         }
 
