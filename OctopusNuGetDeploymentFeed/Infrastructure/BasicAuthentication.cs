@@ -3,15 +3,20 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Autofac;
 using Microsoft.Owin;
+using OctopusDeployNuGetFeed.Octopus;
 
 namespace OctopusDeployNuGetFeed.Infrastructure
 {
     public class BasicAuthentication : OwinMiddleware
     {
+        private readonly IPackageRepositoryFactory _packageRepositoryFactory;
+
         public BasicAuthentication(OwinMiddleware next) :
             base(next)
         {
+            _packageRepositoryFactory = Program.Container.Resolve<IPackageRepositoryFactory>();
         }
 
         public override async Task Invoke(IOwinContext context)
@@ -58,7 +63,8 @@ namespace OctopusDeployNuGetFeed.Infrastructure
             {
                 new Claim(ClaimTypes.Name, username),
                 new Claim(ClaimTypes.Uri, username),
-                new Claim(ClaimTypes.UserData, password)
+                new Claim(ClaimTypes.UserData, password),
+                new Claim(ClaimTypes.Role, "Authenticated")
             }, "Basic");
 
             request.User = new ClaimsPrincipal(id);
@@ -69,7 +75,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
                 return false;
 
-            return true;
+            return _packageRepositoryFactory.IsAuthenticated(username, password);
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 
-namespace OctopusDeployNuGetFeed.DataServices
+namespace OctopusDeployNuGetFeed.Infrastructure
 {
     public class PlainTextResult
         : IHttpActionResult

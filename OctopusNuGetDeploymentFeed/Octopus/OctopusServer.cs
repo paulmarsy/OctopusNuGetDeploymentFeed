@@ -5,12 +5,11 @@ using System.Net;
 using System.Threading;
 using Octopus.Client;
 using Octopus.Client.Model;
-using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Octopus
 {
-    public class OctopusServer : IOctopusServer
+    public class OctopusServer : IOctopusServer, IDisposable
     {
         private readonly IAppInsights _appInsights;
         private readonly ThreadLocal<string> _dependencyContext = new ThreadLocal<string>();
@@ -29,8 +28,37 @@ namespace OctopusDeployNuGetFeed.Octopus
         }
 
         private IHttpOctopusClient Client => _client ?? (_client = new OctopusClient(_endpoint.Value));
+        public int Requests { get; private set; }
+
+        public void Dispose()
+        {
+            _dependencyContext.Dispose();
+            _client?.Dispose();
+        }
+
         public string BaseUri => _endpoint.Value.OctopusServer.ToString();
         public string ApiKey => _endpoint.Value.ApiKey;
+
+        public (bool created, string id) RegisterNuGetFeed(string host)
+        {
+            var existingFeed = GetRepository("RegisterNuGetFeed").Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
+                                                                                            string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
+            var feed = new EnhancedNuGetFeedResource(existingFeed)
+            {
+                Name = Constants.OctopusNuGetFeedName,
+                FeedUri = $"http://{host}/nuget",
+                Username = BaseUri,
+                Password = new SensitiveValue
+                {
+                    HasValue = true,
+                    NewValue = ApiKey
+                },
+                EnhancedMode = true
+            };
+            var feedResult = existingFeed == null ? GetRepository("RegisterNuGetFeed").Feeds.Create(feed) : GetRepository("RegisterNuGetFeed").Feeds.Modify(feed);
+
+            return (existingFeed == null, feedResult?.Id);
+        }
 
         public bool IsAuthenticated
         {
@@ -49,15 +77,17 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         internal IHttpOctopusClient GetClient(string context)
         {
-            _logger.Info(context);
+            _logger.Verbose(context);
             _dependencyContext.Value = context;
+            Requests++;
             return Client;
         }
 
         internal IOctopusRepository GetRepository(string context)
         {
-            _logger.Info(context);
+            _logger.Verbose(context);
             _dependencyContext.Value = context;
+            Requests++;
             return _repository ?? (_repository = new OctopusRepository(Client));
         }
 

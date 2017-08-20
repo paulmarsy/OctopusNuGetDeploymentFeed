@@ -1,6 +1,6 @@
 using System;
 
-namespace OctopusDeployNuGetFeed.DataServices
+namespace OctopusDeployNuGetFeed.OData
 {
     public class ODataPackage
     {

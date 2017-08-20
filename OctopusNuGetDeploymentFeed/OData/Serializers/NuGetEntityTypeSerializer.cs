@@ -11,7 +11,6 @@ using System.Web.Http.OData.Routing;
 using Microsoft.Data.OData;
 using Microsoft.Data.OData.Atom;
 using NuGet;
-using OctopusDeployNuGetFeed.DataServices;
 
 namespace OctopusDeployNuGetFeed.OData.Serializers
 {

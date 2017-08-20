@@ -8,13 +8,15 @@ using System.Threading;
 using System.Web.Http;
 using System.Web.Http.OData;
 using System.Web.Http.OData.Query;
-using OctopusDeployNuGetFeed.DataServices;
+using OctopusDeployNuGetFeed.Infrastructure;
+using OctopusDeployNuGetFeed.Octopus;
+using OctopusDeployNuGetFeed.Octopus.Packages;
 using OctopusDeployNuGetFeed.OData;
 
 namespace OctopusDeployNuGetFeed.Controllers
 {
     [NuGetODataControllerConfiguration]
-    [Authorize]
+    [Authorize(Roles = "Authenticated")]
     public class NuGetODataController : ODataController
     {
         private const int MaxPageSize = 25;
@@ -25,18 +27,16 @@ namespace OctopusDeployNuGetFeed.Controllers
             _packageRepositoryFactory = packageRepositoryFactory;
         }
 
+        private IPackageRepository Repository => _packageRepositoryFactory.GetPackageRepository(User);
+
         // GET /Packages(Id=,Version=)
         [HttpGet]
         public IHttpActionResult Get(ODataQueryOptions<ODataPackage> options, string id, string version, CancellationToken token)
         {
-            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
-            if (!serverRepository.IsAuthenticated)
-                return StatusCode(HttpStatusCode.Forbidden);
-
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(version))
                 return BadRequest();
 
-            var package = serverRepository.GetRelease(id, version, token);
+            var package = Repository.GetRelease(id, version, token);
             if (package == null)
                 return NotFound();
 
@@ -48,14 +48,10 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
-            if (!serverRepository.IsAuthenticated)
-                return StatusCode(HttpStatusCode.Forbidden);
-
             if (string.IsNullOrEmpty(id))
                 return BadRequest();
 
-            var sourceQuery = serverRepository.FindProjectReleases(id, token);
+            var sourceQuery = Repository.FindProjectReleases(id, token);
 
             return TransformToQueryResult(options, sourceQuery);
         }
@@ -65,11 +61,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpPost]
         public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
-            if (!serverRepository.IsAuthenticated)
-                return StatusCode(HttpStatusCode.Forbidden);
-
-            var sourceQuery = serverRepository.FindProjects(searchTerm, token).Where(package => package.Listed || package.Listed == false && includeDelisted);
+            var sourceQuery = Repository.FindProjects(searchTerm, token).Where(package => package.Listed || package.Listed == false && includeDelisted);
 
             return TransformToQueryResult(options, sourceQuery);
         }
@@ -79,14 +71,10 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpHead]
         public HttpResponseMessage Download(string id, string version, CancellationToken token = default(CancellationToken))
         {
-            var serverRepository = _packageRepositoryFactory.GetPackageRepository(User);
-            if (!serverRepository.IsAuthenticated)
-                return Request.CreateResponse(HttpStatusCode.Forbidden);
-
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(version))
                 return Request.CreateResponse(HttpStatusCode.BadRequest);
 
-            var requestedPackage = serverRepository.GetRelease(id, version, token);
+            var requestedPackage = Repository.GetRelease(id, version, token);
             if (requestedPackage == null)
                 return Request.CreateResponse(HttpStatusCode.NotFound);
 

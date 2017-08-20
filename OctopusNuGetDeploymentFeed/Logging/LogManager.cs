@@ -33,6 +33,12 @@ namespace OctopusDeployNuGetFeed.Logging
             _appInsightsLogger.Warning(message);
         }
 
+        public void Verbose(string message)
+        {
+            _consoleLogger.Verbose(message);
+            _appInsightsLogger.Verbose(message);
+        }
+
         public void Info(string message)
         {
             _consoleLogger.Info(message);

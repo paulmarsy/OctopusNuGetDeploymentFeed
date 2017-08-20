@@ -6,7 +6,7 @@ using System.Web.Http.OData.Extensions;
 using System.Web.Http.OData.Routing.Conventions;
 using Microsoft.Data.Edm;
 using Microsoft.Data.OData;
-using OctopusDeployNuGetFeed.DataServices;
+using OctopusDeployNuGetFeed.OData;
 using OctopusDeployNuGetFeed.OData.Conventions;
 using OctopusDeployNuGetFeed.OData.Routing;
 

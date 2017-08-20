@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Octopus.Client.Model;
 using SemanticVersion = NuGet.SemanticVersion;
@@ -7,6 +7,8 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public interface IOctopusCache
     {
+        int Count { get; }
+        long ApproximateSize { get; }
         ProjectResource GetProject(string name);
         IEnumerable<ProjectResource> GetAllProjects();
         ChannelResource GetChannel(string channelId);

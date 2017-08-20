@@ -5,8 +5,6 @@ using System.Runtime.InteropServices;
 using Autofac;
 using Autofac.Integration.WebApi;
 using JetBrains.Annotations;
-using Microsoft.Extensions.Caching.Memory;
-using OctopusDeployNuGetFeed.DataServices;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
 using Topshelf;
@@ -25,11 +23,10 @@ namespace OctopusDeployNuGetFeed
         }
 
         public static IContainer Container { get; private set; }
-        public static string Host { get; private set; } = "+";
-        public static int Port { get; private set; } = 80;
-        private static string AppInsightsKey { get; set; }
+        public static string Host { get; private set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(Host)) ?? "+";
+        public static string Port { get; private set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(Port)) ?? "80";
         public static string BaseAddress => $"http://{Host}:{Port}/";
-        private static string AppInsightsInstrumentationKey => Environment.GetEnvironmentVariable("AppInsightsInstrumentationKey");
+        public static string AppInsightsInstrumentationKey { get; private set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(AppInsightsInstrumentationKey));
 
         public static string Version
         {
@@ -54,7 +51,6 @@ namespace OctopusDeployNuGetFeed
             builder.RegisterType<Watchdog>().AsSelf();
             builder.RegisterType<Startup>().AsSelf();
 
-            builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions())).AsSelf().As<IMemoryCache>();
             builder.RegisterType<OctopusPackageRepositoryFactory>().As<IPackageRepositoryFactory>().SingleInstance();
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
@@ -92,8 +88,8 @@ namespace OctopusDeployNuGetFeed
 
                 c.OnException(_logger.UnhandledException);
                 c.AddCommandLineDefinition("host", host => Host = host);
-                c.AddCommandLineDefinition("port", port => Port = int.Parse(port));
-                c.AddCommandLineDefinition("aikey", aikey => AppInsightsKey = aikey);
+                c.AddCommandLineDefinition("port", port => Port = port);
+                c.AddCommandLineDefinition("aikey", aikey => AppInsightsInstrumentationKey = aikey);
 
                 c.Service<Startup>(s =>
                 {
@@ -106,8 +102,14 @@ namespace OctopusDeployNuGetFeed
 
         private void BeforeInstall()
         {
-            _logger.Info($"Setting Application Insights Instrumentation Key: {AppInsightsKey}");
-            Environment.SetEnvironmentVariable("AppInsightsInstrumentationKey", AppInsightsKey, EnvironmentVariableTarget.Machine);
+            _logger.Info($"Setting Host: {Host}");
+            Environment.SetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(Host), Host, EnvironmentVariableTarget.Machine);
+
+            _logger.Info($"Setting Port: {Port}");
+            Environment.SetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(Port), Port, EnvironmentVariableTarget.Machine);
+
+            _logger.Info($"Setting Application Insights Instrumentation Key: {AppInsightsInstrumentationKey}");
+            Environment.SetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(AppInsightsInstrumentationKey), AppInsightsInstrumentationKey, EnvironmentVariableTarget.Machine);
 
             _logger.Info($"Adding URL reservation for {BaseAddress}...");
             StartProcess("netsh.exe", $"http delete urlacl url={BaseAddress}", false);

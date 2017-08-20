@@ -32,6 +32,11 @@ namespace OctopusDeployNuGetFeed
                 "",
                 new {controller = "Default", action = "Index"});
 
+            config.Routes.MapHttpRoute(
+                "Admin",
+                "admin/{action}",
+                new {controller = "Admin"});
+
             config.UseNuGetV2WebApiFeed(
                 "OctopusNuGetDeploymentFeed",
                 "nuget",
@@ -44,21 +49,11 @@ namespace OctopusDeployNuGetFeed
 
             config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(Program.Container.Resolve<ILogger>()));
             var logger = Program.Container.Resolve<ILogger>();
-            app.Use(async (ctx, next) =>
+            app.Use(async (context, next) =>
             {
-                try
-                {
-                    logger.Info($"{ctx.Request.Method} {ctx.Request.Uri}");
+                logger.Verbose($"{context.Request.Method} {context.Request.Uri}");
 
-                    await next();
-                }
-                catch (Exception e)
-                {
-                    logger.UnhandledException(e);
-#if DEBUG
-                    throw;
-#endif
-                }
+                await next();
             });
             if (Program.Container.Resolve<IAppInsights>().IsEnabled)
                 app.UseApplicationInsights(new RequestTrackingConfiguration

@@ -39,7 +39,7 @@
         "appInsightsName": "[concat(parameters('virtualMachineName'), 'AppInsights')]",
         "networkSecurityGroupName": "[concat(parameters('virtualMachineName'), '-NSG')]",
         "scriptUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Provisioning/install.ps1",
-        "scriptFileName": "install.ps1"
+        "port": "80"
     },
     "resources": [{
             "apiVersion": "2015-05-01",
@@ -130,7 +130,7 @@
                     "properties": {
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
-                        "destinationPortRange": "80",
+                        "destinationPortRange": "[variables('port')]",
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
@@ -157,9 +157,15 @@
                     "fileUris": [
                         "[variables('scriptUri')]"
                     ],
-                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File \"', variables('scriptFileName'), '\" -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\" -Timestamp \"', parameters('timestamp'), '\" -EncodedInstallScript \"', base64(parameters('installScript')), '\"')]"
+                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey, '\" -Timestamp \"', parameters('timestamp'), '\" -Hostname \"',reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress, '\" -Port \"', variables('port'), '\" -EncodedInstallScript \"', base64(parameters('installScript')), '\"')]"
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "privateIp": {
+            "type": "string",
+            "value": "[reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress]"
+        }
+    }
 }

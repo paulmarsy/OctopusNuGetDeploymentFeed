@@ -14,7 +14,7 @@ using Microsoft.Data.Edm;
 using Microsoft.Data.OData;
 using Microsoft.Data.OData.Query;
 
-namespace OctopusDeployNuGetFeed.DataServices
+namespace OctopusDeployNuGetFeed.Infrastructure
 {
     public class QueryResult<TModel> : IHttpActionResult
     {

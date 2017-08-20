@@ -1,7 +1,7 @@
 using System;
 using System.Web.Http;
 using System.Web.Http.Results;
-using OctopusDeployNuGetFeed.DataServices;
+using OctopusDeployNuGetFeed.Infrastructure;
 
 namespace OctopusDeployNuGetFeed.Controllers
 {
