@@ -11,7 +11,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly IDictionary<string, OctopusInstance> _allRepos = new ConcurrentDictionary<string, OctopusInstance>();
+        private readonly IDictionary<string, OctopusInstance> _instances = new ConcurrentDictionary<string, OctopusInstance>();
         private readonly IAppInsights _appInsights;
         private readonly ILogger _logger;
         private readonly Timer _metricTimer;
@@ -20,7 +20,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             _logger = logger;
             _appInsights = appInsights;
-            _metricTimer = new Timer(MetricTimerHandler, null, Timeout.InfiniteTimeSpan, TimeSpan.FromMinutes(10));
+            _metricTimer = new Timer(MetricTimerHandler, null, TimeSpan.Zero, TimeSpan.FromMinutes(15));
         }
 
         public bool IsAuthenticated(string username, string password)
@@ -57,22 +57,30 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private void MetricTimerHandler(object state)
         {
-            foreach (var repo in _allRepos.Where(repo => repo.Value.Server.IsAuthenticated))
+            try
             {
-                _appInsights.TrackMetric("MemoryCache - Approximate Size", repo.Value.Cache.ApproximateSize);
-                _appInsights.TrackMetric("MemoryCache - Cache Entries", repo.Value.Cache.Count);
+                foreach (var repo in _instances.Where(repo => repo.Value.Server.IsAuthenticated))
+                {
+                    _appInsights.TrackMetric("MemoryCache - Approximate Size", repo.Value.Cache.ApproximateSize);
+                    _appInsights.TrackMetric("MemoryCache - Cache Entries", repo.Value.Cache.Count);
 
-                var totalRequests = repo.Value.Repository.Requests;
-                var misses = repo.Value.Server.Requests;
-                var hits = totalRequests - misses;
+                    var totalRequests = repo.Value.Repository.Requests;
+                    var misses = repo.Value.Server.Requests;
+                    var hits = totalRequests - misses;
 
-                _appInsights.TrackMetric("MemoryCache - Cache Hits", hits);
-                _appInsights.TrackMetric("MemoryCache - Cache Misses", misses);
-                _appInsights.TrackMetric("MemoryCache - Cache Hit Ratio", hits / (double) totalRequests);
+                    _appInsights.TrackMetric("MemoryCache - Cache Hits", hits);
+                    _appInsights.TrackMetric("MemoryCache - Cache Misses", misses);
+                    _appInsights.TrackMetric("MemoryCache - Cache Hit Ratio", hits / (double) totalRequests);
+                    _appInsights.TrackMetric("MemoryCache - Cache Preloads", repo.Value.Cache.Preloads);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Exception(e);
             }
         }
 
-        private OctopusInstance GetInstance(IPrincipal user)
+            private OctopusInstance GetInstance(IPrincipal user)
         {
             var context = GetOctopusContext(user);
             return GetInstance(context.host, context.baseUrl, context.apiKey);
@@ -80,10 +88,10 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private OctopusInstance GetInstance(string host, string baseUrl, string apiKey)
         {
-            if (_allRepos.ContainsKey(host) && _allRepos[host].IsMatch(baseUrl, apiKey))
-                return _allRepos[host];
+            if (_instances.ContainsKey(host) && _instances[host].IsMatch(baseUrl, apiKey))
+                return _instances[host];
 
-            lock (_allRepos)
+            lock (_instances)
             {
                 return CreateOctopusRepository(host, baseUrl, apiKey);
             }
@@ -100,13 +108,13 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private OctopusInstance CreateOctopusRepository(string host, string baseUrl, string apiKey)
         {
-            if (_allRepos.ContainsKey(host))
+            if (_instances.ContainsKey(host))
             {
-                if (_allRepos[host].IsMatch(baseUrl, apiKey))
-                    return _allRepos[host];
+                if (_instances[host].IsMatch(baseUrl, apiKey))
+                    return _instances[host];
 
-                _allRepos[host].Dispose();
-                _allRepos.Remove(host);
+                _instances[host].Dispose();
+                _instances.Remove(host);
             }
             var server = new OctopusServer(_appInsights, _logger, baseUrl, apiKey);
 
@@ -125,7 +133,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             var cache = new OctopusCache(server, _logger);
             var repository = new OctopusPackageRepository(_logger, server, cache);
             var instance = new OctopusInstance(server, cache, repository);
-            _allRepos[host] = instance;
+            _instances[instance.Key] = instance;
 
             return instance;
         }
