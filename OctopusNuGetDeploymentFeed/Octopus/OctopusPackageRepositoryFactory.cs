@@ -11,8 +11,8 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusPackageRepositoryFactory : IPackageRepositoryFactory
     {
-        private readonly IDictionary<string, OctopusInstance> _instances = new ConcurrentDictionary<string, OctopusInstance>();
         private readonly IAppInsights _appInsights;
+        private readonly IDictionary<string, OctopusInstance> _instances = new ConcurrentDictionary<string, OctopusInstance>();
         private readonly ILogger _logger;
         private readonly Timer _metricTimer;
 
@@ -80,7 +80,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
         }
 
-            private OctopusInstance GetInstance(IPrincipal user)
+        private OctopusInstance GetInstance(IPrincipal user)
         {
             var context = GetOctopusContext(user);
             return GetInstance(context.host, context.baseUrl, context.apiKey);

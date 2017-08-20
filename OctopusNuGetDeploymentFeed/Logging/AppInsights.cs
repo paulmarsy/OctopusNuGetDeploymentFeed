@@ -14,7 +14,7 @@ namespace OctopusDeployNuGetFeed.Logging
     public class AppInsights : IAppInsights
     {
         private static readonly string[] PerformanceCounters =
-       {
+        {
             @"\Processor(_Total)\% Processor Time",
             $"\\Process({Process.GetCurrentProcess().ProcessName})\\% Processor Time",
             $"\\Process({Process.GetCurrentProcess().ProcessName})\\Private Bytes",

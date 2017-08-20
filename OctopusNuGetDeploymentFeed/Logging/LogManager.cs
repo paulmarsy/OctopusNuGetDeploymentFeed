@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -62,10 +63,10 @@ namespace OctopusDeployNuGetFeed.Logging
         {
             _consoleLogger.Critical($"{source}: {exception.GetType().Name} {exception.Message}. {exception.InnerException?.GetType().Name} {exception.InnerException?.Message}\n{exception.StackTrace}");
 #if DEBUG
-            if (!System.Diagnostics.Debugger.IsAttached)
-                System.Diagnostics.Debugger.Launch();
+            if (!Debugger.IsAttached)
+                Debugger.Launch();
 
-            System.Diagnostics.Debugger.Break();
+            Debugger.Break();
 #endif
         }
     }
