@@ -13,18 +13,23 @@ Once deployed all chain functionality is provided by the NuGet feed & the built-
 
 2. Add a **Deploy a package** step to the deployment process of an Octopus project with the package id containing the name of the Octopus project you wish to trigger the deployment of. 
 
-![Octopus - Deployment Process - Add Deploy Package Step](/Images/package-step.png)
+![Octopus - D eployment Process - Add Deploy Package Step](/Images/package-step.png)
 
 3. Create a release. The Octopus projects being deployed follow the same behaviour as regular package steps, so the release version being deployed is set when the parent release is made & channel version rules can be used to select stable or development channel releases appropriately.
 
 ![Octopus - Create Release](/Images/create-release.png)
+
+![Octopus - View Release](/Images/release-page.png)
 
 4. Deploy!
 ![Octopus - Deployment](/Images/deploy.png)
 
 ![Octopus - Deployed](/Images/deployed.png)
 
-# Manual Install
+## Manual Install
+
+**It is recommended to use the step template install described in the previous section, the following steps are only needed if manually deploying the service** 
+
 1. Deploy the NuGet feed from this repository, the following ARM template takes less than 10 minutes to run and if deployed onto a virtual network that has two way connectivity with Octopus Deploy is fully functional once the template finishes.
 
     <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fpaulmarsy%2FOctopusNuGetDeploymentFeed%2Fmaster%2FProvisioning%2Ftemplate.json" target="_blank">
