@@ -2,18 +2,20 @@
 A NuGet feed for Octopus Deploy which creates NuGet packages used to chain deployments of different Octopus projects together.
 
 # Install
-1. Use the **Octopus - Create Chain Deployment NuGet Feed micro service** community step template to provision & deploy the NuGet feed micro service. Once running all chain functionality is provided by the NuGet feed & the built-in **Deploy a package** step.
-
-2. Add a **Deploy a package** step to the deployment process of an Octopus project with the package id containing the name of the Octopus project you wish to trigger the deployment of. The following parameters do not have a default value and must be provided:
+1. Use the **[Octopus - Create Chain Deployment NuGet Feed micro service](https://github.com/OctopusDeploy/Library/pull/582)** community step template to provision & deploy the NuGet feed micro service. The following parameters do not have a default value and must be provided:
 - API Key
 - Octopus Azure Account
 - Virtual Network Resource Group Name
 - Virtual Network Name
 - Subnet Name
 
+Once deployed all chain functionality is provided by the NuGet feed & the built-in **Deploy a package** step.
+
+2. Add a **Deploy a package** step to the deployment process of an Octopus project with the package id containing the name of the Octopus project you wish to trigger the deployment of. 
+
 ![Octopus - Deployment Process - Add Deploy Package Step](/Images/package-step.png)
 
-3. Create a release. The Octopus projects being deployed follow the same behaviour as regular packages, so the release version being deployed is set when a release is made & channel package step version rules can be used to select stable or development channel releases appropriately.
+3. Create a release. The Octopus projects being deployed follow the same behaviour as regular package steps, so the release version being deployed is set when the parent release is made & channel version rules can be used to select stable or development channel releases appropriately.
 
 ![Octopus - Create Release](/Images/create-release.png)
 
