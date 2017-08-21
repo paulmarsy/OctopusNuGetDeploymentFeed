@@ -19,6 +19,8 @@ Once deployed all chain functionality is provided by the NuGet feed & the built-
 
 ![Octopus - Create Release](/Images/create-release.png)
 
+![Octopus - View Release](/Images/release-page.png)
+
 4. Deploy!
 ![Octopus - Deployment](/Images/deploy.png)
 
