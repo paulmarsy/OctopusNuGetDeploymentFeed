@@ -23,6 +23,18 @@ namespace OctopusDeployNuGetFeed.Octopus
             _metricTimer = new Timer(MetricTimerHandler, null, TimeSpan.Zero, TimeSpan.FromMinutes(15));
         }
 
+        public void Reset()
+        {
+            lock (_instances)
+            {
+                foreach (var instance in _instances)
+                    instance.Value.Dispose();
+                _instances.Clear();
+            }
+        }
+
+        public int Count => _instances.Count;
+
         public bool IsAuthenticated(string username, string password)
         {
             return GetInstance(GetHost(username), username, password).IsAuthenticated;
@@ -71,7 +83,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                     _appInsights.TrackMetric("MemoryCache - Cache Hits", hits);
                     _appInsights.TrackMetric("MemoryCache - Cache Misses", misses);
                     _appInsights.TrackMetric("MemoryCache - Cache Hit Ratio", hits / (double) totalRequests);
-                    _appInsights.TrackMetric("MemoryCache - Cache Preloads", repo.Value.Cache.Preloads);
+                    _appInsights.TrackMetric("MemoryCache - Cache Preload Updates", repo.Value.Cache.Preloads);
+                    _appInsights.TrackMetric("MemoryCache - Cache Preload Entries", repo.Value.Cache.PreloadCount);
                 }
             }
             catch (Exception e)

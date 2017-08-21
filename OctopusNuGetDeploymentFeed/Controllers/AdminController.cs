@@ -26,7 +26,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         }
 
         [HttpGet]
-        public IHttpActionResult Cache()
+        public IHttpActionResult Stats()
         {
             var cache = _packageRepositoryFactory.GetCache(User);
 
@@ -34,10 +34,19 @@ namespace OctopusDeployNuGetFeed.Controllers
 
             return Ok(new
             {
-                count = cache.Count,
-                cacheMemory = cache.ApproximateSize,
-                totalMemory = GC.GetTotalMemory(false)
+                Instances = _packageRepositoryFactory.Count,
+                CacheEntries = cache.Count,
+                CachePreloadEntries = cache.PreloadCount,
+                CacheMemory = cache.ApproximateSize,
+                TotalMemory = GC.GetTotalMemory(false)
             });
+        }
+
+        [HttpGet]
+        public IHttpActionResult Decache()
+        {
+            _packageRepositoryFactory.Reset();
+            return Stats();
         }
     }
 }

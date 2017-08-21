@@ -51,6 +51,8 @@ namespace OctopusDeployNuGetFeed.Octopus
             _cache.Dispose();
         }
 
+        public int PreloadCount => _preloadRegistry.Count;
+
         public ProjectResource TryGetProject(string name)
         {
             return _cache.Get<ProjectResource>(CacheKey(CacheKeyType.Project, name));

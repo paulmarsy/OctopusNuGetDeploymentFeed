@@ -9,6 +9,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     {
         int Count { get; }
         long ApproximateSize { get; }
+        int PreloadCount { get; }
         ProjectResource GetProject(string name);
         IEnumerable<ProjectResource> GetAllProjects();
         ChannelResource GetChannel(string channelId);

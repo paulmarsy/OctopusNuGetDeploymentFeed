@@ -30,6 +30,21 @@ namespace OctopusDeployNuGetFeed.Octopus
         private IHttpOctopusClient Client => _client ?? (_client = new OctopusClient(_endpoint.Value));
         public int Requests { get; private set; }
 
+        public bool IsAuthenticated
+        {
+            get
+            {
+                try
+                {
+                    return (_root ?? (_root = GetRepository("OctopusServer.IsAuthenticated").Client.RefreshRootDocument())) != null;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
         public void Dispose()
         {
             _dependencyContext.Dispose();
@@ -58,21 +73,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             var feedResult = existingFeed == null ? GetRepository("RegisterNuGetFeed").Feeds.Create(feed) : GetRepository("RegisterNuGetFeed").Feeds.Modify(feed);
 
             return (existingFeed == null, feedResult?.Id);
-        }
-
-        public bool IsAuthenticated
-        {
-            get
-            {
-                try
-                {
-                    return (_root ?? (_root = GetRepository("OctopusServer.IsAuthenticated").Client.RefreshRootDocument())) != null;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
         }
 
         internal IHttpOctopusClient GetClient(string context)
