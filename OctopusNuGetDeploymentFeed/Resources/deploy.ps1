@@ -252,7 +252,7 @@ class DeploymentContext {
         }
         if ($deploySchedule -eq 'WaitForDeployment') {
             $this.WaitForDeployment = $true
-            Write-Host 'Deployment will be queued to start immediatley...'
+            Write-Host 'Deployment will be queued to start immediately...'
             return
         }
         $this.WaitForDeployment = $false
@@ -690,7 +690,7 @@ if (!(Test-IsNominatedDeployer)) {
 $featureDeployScript = $OctopusParameters['Octopus.Action.CustomScripts.Deploy.ps1'] 
 $customDeployScript = Get-DeployConfigSetting "Octopus.Action.PreDeployScript" ''
 if ((Test-String $featureDeployScript) -or (Test-String $customDeployScript)) {
-	Show-Heading 'Pre-Deploy Script' 
+	Show-Heading 'Pre-Deploy Script ' 
 	[scriptblock]::Create($featureDeployScript).Invoke()
 	[scriptblock]::Create($customDeployScript).Invoke()
 }

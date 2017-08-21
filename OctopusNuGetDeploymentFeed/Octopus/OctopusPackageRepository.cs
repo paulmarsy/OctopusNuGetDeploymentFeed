@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using OctopusDeployNuGetFeed.Infrastructure;
-using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus.Packages;
 
 namespace OctopusDeployNuGetFeed.Octopus
@@ -10,12 +9,10 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusPackageRepository : IPackageRepository
     {
         private readonly IOctopusCache _cache;
-        private readonly ILogger _logger;
         private readonly IOctopusServer _server;
 
-        public OctopusPackageRepository(ILogger logger, IOctopusServer server, IOctopusCache octopusCache)
+        public OctopusPackageRepository(IOctopusServer server, IOctopusCache octopusCache)
         {
-            _logger = logger;
             _server = server;
             _cache = octopusCache;
         }
@@ -49,7 +46,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (channel == null)
                 return null;
 
-            return new ReleasePackage(_logger, _server, Cache, project, release, channel);
+            return new ReleasePackage(_server, Cache, project, release, channel);
         }
 
         public IEnumerable<INuGetPackage> FindProjectReleases(string projectName, CancellationToken token)
@@ -62,7 +59,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             foreach (var release in Cache.ListReleases(project))
             {
                 token.ThrowIfCancellationRequested();
-                yield return new ProjectPackage(_logger, _server, project, release, isLatest);
+                yield return new ProjectPackage(project, release, isLatest);
                 isLatest = false;
             }
         }
@@ -71,12 +68,12 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             var exactProject = Cache.TryGetProject(searchTerm);
             if (exactProject != null)
-                yield return new ProjectPackage(_logger, _server, exactProject, Cache.GetLatestRelease(exactProject), true);
+                yield return new ProjectPackage(exactProject, Cache.GetLatestRelease(exactProject), true);
             else
                 foreach (var project in Cache.GetAllProjects().Where(project => project.Name.WildcardMatch($"*{searchTerm}*")))
                 {
                     token.ThrowIfCancellationRequested();
-                    yield return new SearchPackage(_logger, _server, project);
+                    yield return new SearchPackage(project);
                 }
         }
     }

@@ -106,7 +106,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
             lock (_instances)
             {
-                return CreateOctopusRepository(host, baseUrl, apiKey);
+                return CreateOctopusInstance(host, baseUrl, apiKey);
             }
         }
 
@@ -119,24 +119,18 @@ namespace OctopusDeployNuGetFeed.Octopus
             return (GetHost(baseUri), baseUri, apiKey);
         }
 
-        private OctopusInstance CreateOctopusRepository(string host, string baseUrl, string apiKey)
+        private OctopusInstance CreateOctopusInstance(string host, string baseUrl, string apiKey)
         {
-            if (_instances.ContainsKey(host))
-            {
-                if (_instances[host].IsMatch(baseUrl, apiKey))
-                    return _instances[host];
+            if (_instances.ContainsKey(host) && _instances[host].IsMatch(baseUrl, apiKey))
+                return _instances[host];
 
-                _instances[host].Dispose();
-                _instances.Remove(host);
-            }
             var server = new OctopusServer(_appInsights, _logger, baseUrl, apiKey);
 
-            var authenticated = server.IsAuthenticated;
-            _logger.Info($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {authenticated}");
-            _appInsights.TrackEvent("CreateOctopusRepository", new Dictionary<string, string>
+            _logger.Verbose($"Creating Octopus API Connection: {server.BaseUri}. IsAuthenticated: {server.IsAuthenticated}");
+            _appInsights.TrackEvent("CreateOctopusInstance", new Dictionary<string, string>
             {
                 {"BaseUri", server.BaseUri},
-                {"IsAuthenticated", authenticated.ToString()}
+                {"IsAuthenticated", server.IsAuthenticated.ToString()}
             });
             if (!server.IsAuthenticated)
                 return null;
@@ -144,8 +138,16 @@ namespace OctopusDeployNuGetFeed.Octopus
             server.ConfigureAppInsightsDependencyTracking();
 
             var cache = new OctopusCache(server, _logger);
-            var repository = new OctopusPackageRepository(_logger, server, cache);
+
+            var repository = new OctopusPackageRepository(server, cache);
+
             var instance = new OctopusInstance(server, cache, repository);
+
+            if (_instances.ContainsKey(host))
+            {
+                _instances[host].Dispose();
+                _instances.Remove(host);
+            }
             _instances[instance.Key] = instance;
 
             return instance;
