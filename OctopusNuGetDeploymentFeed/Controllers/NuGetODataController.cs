@@ -31,6 +31,7 @@ namespace OctopusDeployNuGetFeed.Controllers
 
         // GET /Packages(Id=,Version=)
         [HttpGet]
+        [GzipCompressed]
         public IHttpActionResult Get(ODataQueryOptions<ODataPackage> options, string id, string version, CancellationToken token)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(version))
@@ -46,6 +47,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         // GET/POST /FindPackagesById()?id=
         [HttpGet]
         [HttpPost]
+        [GzipCompressed]
         public IHttpActionResult FindPackagesById(ODataQueryOptions<ODataPackage> options, [FromODataUri] string id, CancellationToken token = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(id))
@@ -59,6 +61,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         // GET/POST /Search()?searchTerm=&targetFramework=&includePrerelease=
         [HttpGet]
         [HttpPost]
+        [GzipCompressed]
         public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, CancellationToken token = default(CancellationToken))
         {
             var sourceQuery = Repository.FindProjects(searchTerm, token).Where(package => package.Listed || package.Listed == false && includeDelisted);

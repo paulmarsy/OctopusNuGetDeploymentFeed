@@ -23,19 +23,40 @@ namespace OctopusDeployNuGetFeed
 
         public void Configuration(IAppBuilder app)
         {
+            var logger = Program.Container.Resolve<ILogger>();
+
+            if (Environment.UserInteractive)
+            {
+                app.Use(async (context, next) =>
+                {
+                    logger.Verbose($"{context.Request.Method} {context.Request.Uri}");
+
+                    await next();
+                });
+            }
+            if (Program.Container.Resolve<IAppInsights>().IsEnabled)
+                app.UseApplicationInsights(new RequestTrackingConfiguration
+                {
+                    ShouldTrackRequest = ShouldTrackRequest
+                });
+            
+            app.Use<BasicAuthentication>();
+
             var config = new HttpConfiguration();
+
+            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(logger));
             config.DependencyResolver = new AutofacWebApiDependencyResolver(Program.Container);
             config.Formatters.JsonFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("text/html"));
 
             config.Routes.MapHttpRoute(
                 "HomePage",
                 "",
-                new {controller = "Default", action = "Index"});
+                new { controller = "Default", action = "Index" });
 
             config.Routes.MapHttpRoute(
                 "Admin",
                 "admin/{action}",
-                new {controller = "Admin"});
+                new { controller = "Admin" });
 
             config.UseNuGetV2WebApiFeed(
                 "OctopusNuGetDeploymentFeed",
@@ -45,23 +66,8 @@ namespace OctopusDeployNuGetFeed
             config.Routes.MapHttpRoute(
                 "Default",
                 "{*uri}",
-                new {controller = "Default", uri = RouteParameter.Optional});
+                new { controller = "Default", uri = RouteParameter.Optional });
 
-            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(Program.Container.Resolve<ILogger>()));
-            var logger = Program.Container.Resolve<ILogger>();
-            app.Use(async (context, next) =>
-            {
-                logger.Verbose($"{context.Request.Method} {context.Request.Uri}");
-
-                await next();
-            });
-            if (Program.Container.Resolve<IAppInsights>().IsEnabled)
-                app.UseApplicationInsights(new RequestTrackingConfiguration
-                {
-                    ShouldTrackRequest = ShouldTrackRequest
-                });
-
-            app.Use<BasicAuthentication>();
             app.UseWebApi(config);
         }
 
