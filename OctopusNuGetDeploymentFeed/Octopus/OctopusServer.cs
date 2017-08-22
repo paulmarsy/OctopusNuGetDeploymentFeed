@@ -104,12 +104,11 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private void ClientOnReceivedOctopusResponse(OctopusResponse octopusResponse)
         {
-            if (_dependencyTracking.TryRemove(octopusResponse.Request, out (DateTimeOffset startTime, Stopwatch duration) tracking))
-            {
-                tracking.duration.Stop();
-                _appInsights.TrackDependency("Octopus Deploy API", _dependencyContext.Value, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracking.startTime, tracking.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
-            }
-            _dependencyContext.Value = string.Empty;
+            if (!_dependencyTracking.TryRemove(octopusResponse.Request, out (DateTimeOffset startTime, Stopwatch duration) tracking))
+                return;
+
+            tracking.duration.Stop();
+            _appInsights.TrackDependency("Octopus Deploy API", _dependencyContext.Value, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracking.startTime, tracking.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
         }
     }
 }

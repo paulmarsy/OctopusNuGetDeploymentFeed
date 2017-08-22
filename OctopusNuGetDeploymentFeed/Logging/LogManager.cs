@@ -61,12 +61,6 @@ namespace OctopusDeployNuGetFeed.Logging
         private void ExceptionImpl(Exception exception, string source)
         {
             _consoleLogger.Critical($"{source}: {exception.GetType().Name} {exception.Message}. {exception.InnerException?.GetType().Name} {exception.InnerException?.Message}\n{exception.StackTrace}");
-#if DEBUG
-            if (!Debugger.IsAttached)
-                Debugger.Launch();
-
-            Debugger.Break();
-#endif
         }
     }
 }

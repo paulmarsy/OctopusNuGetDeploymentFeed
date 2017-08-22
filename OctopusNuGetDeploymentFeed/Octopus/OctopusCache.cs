@@ -16,26 +16,28 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public class OctopusCache : IOctopusCache, IDisposable
     {
-        private static readonly IReadOnlyDictionary<CacheKeyType, TimeSpan> CachePreloadTime = new Dictionary<CacheKeyType, TimeSpan>
+        private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CachePreloadTime = new Dictionary<CacheEntryType, TimeSpan>
         {
-            {CacheKeyType.Channel, TimeSpan.FromDays(7)},
-            {CacheKeyType.Release, TimeSpan.FromDays(2)},
-            {CacheKeyType.JsonDocument, TimeSpan.FromDays(2)}
+            {CacheEntryType.ProjectList, TimeSpan.MaxValue},
+            {CacheEntryType.Channel, TimeSpan.FromDays(10)},
+            {CacheEntryType.Release, TimeSpan.FromDays(3)},
+            {CacheEntryType.JsonDocument, TimeSpan.FromDays(2)}
         };
 
-        private static readonly IReadOnlyDictionary<CacheKeyType, TimeSpan> CacheTime = new Dictionary<CacheKeyType, TimeSpan>
+        private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CacheTime = new Dictionary<CacheEntryType, TimeSpan>
         {
-            {CacheKeyType.NuGetPackage, TimeSpan.FromHours(1)},
-            {CacheKeyType.Channel, TimeSpan.FromDays(2)},
-            {CacheKeyType.Release, TimeSpan.FromHours(3)},
-            {CacheKeyType.JsonDocument, TimeSpan.FromHours(6)},
-            {CacheKeyType.ProjectReleases, TimeSpan.FromMinutes(2)} // Cache for pagination calls
+            {CacheEntryType.ProjectList, TimeSpan.FromHours(1)},
+            {CacheEntryType.Channel, TimeSpan.FromDays(2)},
+            {CacheEntryType.Release, TimeSpan.FromHours(3)},
+            {CacheEntryType.JsonDocument, TimeSpan.FromHours(12)},
+            {CacheEntryType.ReleaseList, TimeSpan.FromMinutes(2)}, // Cache for pagination calls
+            {CacheEntryType.NuGetPackage, TimeSpan.FromHours(2)}
         };
 
         private readonly MemoryCache _cache;
         private readonly SizedReference _cacheSizeRef;
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheKeyType type, object state)> _preloadRegistry = new ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheKeyType type, object state)>();
+        private readonly ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheEntryType type, object state)> _preloadRegistry = new ConcurrentDictionary<string, (DateTimeOffset lastAccess, DateTimeOffset lastUpdate, CacheEntryType type, object state)>();
         private readonly OctopusServer _server;
         private readonly Timer _timer;
         private CancellationTokenSource _projectEvictionTokenSource;
@@ -47,6 +49,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             _cache = new MemoryCache(new MemoryCacheOptions());
             _cacheSizeRef = new SizedReference(_cache);
             _projectEvictionTokenSource = new CancellationTokenSource();
+            RegisterPreloadAccess(CacheEntryType.ProjectList, false, null);
             _timer = new Timer(TimerHandler, null, TimeSpan.Zero, Timeout.InfiniteTimeSpan);
         }
 
@@ -62,7 +65,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public ProjectResource TryGetProject(string name)
         {
-            return _cache.Get<ProjectResource>(CacheKey(CacheKeyType.Project, name));
+            return _cache.Get<ProjectResource>(CacheKey(CacheEntryType.Project, name));
         }
 
         public int Count => _cache.Count;
@@ -74,21 +77,23 @@ namespace OctopusDeployNuGetFeed.Octopus
             ReleaseResource release = null;
             for (var skip = 0; semver == null; skip++)
             {
-                release = _server.GetRepository($"GetLatestRelease: {project.Name}").Projects.GetReleases(project, skip, 1).Items.Single();
+                release = _server.GetClient($"GetLatestRelease: {project.Name}").List<ReleaseResource>(project.Link("Releases"), new {skip, take = 1}).Items.FirstOrDefault();
+                if (release == null)
+                    return null;
                 semver = release.Version.ToSemanticVersion();
             }
 
-            return _cache.Set(CacheKey(CacheKeyType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheKeyType.Release]);
+            return _cache.Set(CacheKey(CacheEntryType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheEntryType.Release]);
         }
 
         public byte[] GetJson(Resource resource)
         {
-            RegisterPreloadAccess(CacheKeyType.JsonDocument, false, resource.Link("Self"), resource.Link("Self"));
+            RegisterPreloadAccess(CacheEntryType.JsonDocument, false, resource.Link("Self"), resource.Link("Self"));
 
-            return _cache.GetOrCreate(CacheKey(CacheKeyType.JsonDocument, resource.Link("Self")), entry =>
+            return _cache.GetOrCreate(CacheKey(CacheEntryType.JsonDocument, resource.Link("Self")), entry =>
             {
-                RegisterPreloadAccess(CacheKeyType.JsonDocument, true, resource.Link("Self"), resource.Link("Self"));
-                entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.JsonDocument]);
+                RegisterPreloadAccess(CacheEntryType.JsonDocument, true, resource.Link("Self"), resource.Link("Self"));
+                entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.JsonDocument]);
                 using (var sourceStream = _server.GetClient($"GetJson: {resource.Link("Self")}").GetContent(resource.Link("Self")))
                 {
                     return sourceStream.ReadAllBytes();
@@ -98,7 +103,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public ProjectResource GetProject(string name)
         {
-            return _cache.GetOrCreate(CacheKey(CacheKeyType.Project, name), entry =>
+            return _cache.GetOrCreate(CacheKey(CacheEntryType.Project, name), entry =>
             {
                 entry.AddExpirationToken(new CancellationChangeToken(_projectEvictionTokenSource.Token));
                 return _server.GetRepository($"GetProject: {name}").Projects.FindByName(name);
@@ -109,7 +114,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             var currentProjectSet = _projectEvictionTokenSource;
 
-            if (!_cache.TryGetValue(CacheKey(CacheKeyType.ProjectList), out IEnumerable<ProjectResource> projects))
+            if (!_cache.TryGetValue(CacheKey(CacheEntryType.ProjectList), out IEnumerable<ProjectResource> projects))
                 projects = LoadAllProjects(currentProjectSet);
 
             return projects;
@@ -117,21 +122,21 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public ChannelResource GetChannel(string channelId)
         {
-            RegisterPreloadAccess(CacheKeyType.Channel, false, channelId, channelId);
+            RegisterPreloadAccess(CacheEntryType.Channel, false, channelId, channelId);
 
-            return _cache.GetOrCreate(CacheKey(CacheKeyType.Channel, channelId), entry =>
+            return _cache.GetOrCreate(CacheKey(CacheEntryType.Channel, channelId), entry =>
             {
-                RegisterPreloadAccess(CacheKeyType.Channel, true, channelId, channelId);
-                entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.Channel]);
+                RegisterPreloadAccess(CacheEntryType.Channel, true, channelId, channelId);
+                entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.Channel]);
                 return _server.GetRepository($"GetChannel: {channelId}").Channels.Get(channelId);
             });
         }
 
         public IEnumerable<ReleaseResource> ListReleases(ProjectResource project)
         {
-            foreach (var release in _cache.GetOrCreate(CacheKey(CacheKeyType.ProjectReleases, project.Id), entry =>
+            foreach (var release in _cache.GetOrCreate(CacheKey(CacheEntryType.ReleaseList, project.Id), entry =>
             {
-                entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.ProjectReleases]); // Cache for pagination calls
+                entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.ReleaseList]); // Cache for pagination calls
 
                 return _server.GetRepository($"ListReleases: {project.Name}").Projects.GetAllReleases(project);
             }))
@@ -140,13 +145,13 @@ namespace OctopusDeployNuGetFeed.Octopus
                 if (semver == null)
                     continue;
 
-                yield return _cache.Set(CacheKey(CacheKeyType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheKeyType.Release]);
+                yield return _cache.Set(CacheKey(CacheEntryType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheEntryType.Release]);
             }
         }
 
         public ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver)
         {
-            if (!_cache.TryGetValue(CacheKey(CacheKeyType.Release, project.Id, semver.ToNormalizedString()), out ReleaseResource release))
+            if (!_cache.TryGetValue(CacheKey(CacheEntryType.Release, project.Id, semver.ToNormalizedString()), out ReleaseResource release))
             {
                 // Try for an exact match, failing that go for a normalized match
                 var allReleases = ListReleases(project).ToArray();
@@ -156,27 +161,30 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (release == null)
                 return null;
 
-            RegisterPreloadAccess(CacheKeyType.Release, false, (project, release.Version), project.Id, semver.ToNormalizedString());
+            RegisterPreloadAccess(CacheEntryType.Release, false, (project, release.Version), project.Id, semver.ToNormalizedString());
             return release;
         }
 
         public byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory)
         {
-            return _cache.GetOrCreate(CacheKey(CacheKeyType.NuGetPackage, project.Id, release.Id), entry =>
+            return _cache.GetOrCreate(CacheKey(CacheEntryType.NuGetPackage, project.Id, release.Id), entry =>
             {
-                entry.SetAbsoluteExpiration(CacheTime[CacheKeyType.NuGetPackage]);
+                entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.NuGetPackage]);
                 return nugetPackageFactory();
             });
         }
 
 
-        private void RegisterPreloadAccess(CacheKeyType type, bool updated, object state, params string[] id)
+        private void RegisterPreloadAccess(CacheEntryType type, bool updated, object state, params string[] id)
         {
-            var lastUpdate = _preloadRegistry.ContainsKey(CacheKey(type, id)) && !updated ? _preloadRegistry[CacheKey(type, id)].lastUpdate : DateTimeOffset.UtcNow;
+            var lastUpdate = _preloadRegistry.ContainsKey(CacheKey(type, id)) ? _preloadRegistry[CacheKey(type, id)].lastUpdate : DateTimeOffset.MinValue;
+            if (updated)
+                lastUpdate = DateTimeOffset.UtcNow;
+
             _preloadRegistry[CacheKey(type, id)] = (lastAccess: DateTimeOffset.UtcNow, lastUpdate: lastUpdate, type: type, state: state);
         }
 
-        private static string CacheKey(CacheKeyType type, params string[] id)
+        private static string CacheKey(CacheEntryType type, params string[] id)
         {
             return $"{type}:{string.Join(";", id.Select(x => x.ToLowerInvariant()))}";
         }
@@ -185,7 +193,6 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             try
             {
-                LoadAllProjects(_projectEvictionTokenSource);
                 foreach (var entry in _preloadRegistry)
                 {
                     _logger.Verbose($"Checking Preload: {entry.Key}");
@@ -196,21 +203,27 @@ namespace OctopusDeployNuGetFeed.Octopus
                     else if (DateTimeOffset.UtcNow - entry.Value.lastUpdate >= CacheTime[entry.Value.type])
                     {
                         object value = null;
+                        var options = new MemoryCacheEntryOptions();
+                        options.SetAbsoluteExpiration(CacheTime[entry.Value.type].Add(TimeSpan.FromHours(1)));
                         try
                         {
                             switch (entry.Value.type)
                             {
-                                case CacheKeyType.JsonDocument:
+                                case CacheEntryType.ProjectList:
+                                    value = LoadAllProjects(_projectEvictionTokenSource);
+                                    options.AddExpirationToken(new CancellationChangeToken(_projectEvictionTokenSource.Token));
+                                    break;
+                                case CacheEntryType.JsonDocument:
                                     using (var sourceStream = _server.GetClient($"Preload JsonDocument: {entry.Key}").GetContent((string) entry.Value.state))
                                     {
                                         value = sourceStream.ReadAllBytes();
                                     }
                                     break;
-                                case CacheKeyType.Release:
+                                case CacheEntryType.Release:
                                     var castState = ((ProjectResource, string)) entry.Value.state;
                                     value = _server.GetRepository($"Preload Release: {entry.Key}").Projects.GetReleaseByVersion(castState.Item1, castState.Item2);
                                     break;
-                                case CacheKeyType.Channel:
+                                case CacheEntryType.Channel:
                                     value = _server.GetRepository($"Preload Channel: {entry.Key}").Channels.Get((string) entry.Value.state);
                                     break;
                                 default:
@@ -221,13 +234,13 @@ namespace OctopusDeployNuGetFeed.Octopus
                         {
                             _logger.Exception(e);
                         }
-                        if (value == null)
+                        if (value == null && CachePreloadTime[entry.Value.type] != TimeSpan.MaxValue)
                         {
                             _preloadRegistry.TryRemove(entry.Key, out _);
                         }
                         else
                         {
-                            _cache.Set(entry.Key, value, CacheTime[entry.Value.type]);
+                            _cache.Set(entry.Key, value, options);
                             _preloadRegistry[entry.Key] = (lastAccess: entry.Value.lastAccess, lastUpdate: DateTimeOffset.UtcNow, type: entry.Value.type, state: entry.Value.state);
                             Preloads++;
                         }
@@ -262,16 +275,16 @@ namespace OctopusDeployNuGetFeed.Octopus
             lock (currentSet)
             {
                 if (currentSet.IsCancellationRequested || currentSet != _projectEvictionTokenSource)
-                    return _cache.Get<IEnumerable<ProjectResource>>(CacheKey(CacheKeyType.ProjectList));
+                    return _cache.Get<IEnumerable<ProjectResource>>(CacheKey(CacheEntryType.ProjectList));
 
                 var projectEvictionTokenSource = new CancellationTokenSource();
                 var projectList = _server.GetRepository("LoadAllProjects").Projects.GetAll().ToArray();
 
                 currentSet.Cancel();
 
-                _cache.Set(CacheKey(CacheKeyType.ProjectList), projectList, new CancellationChangeToken(projectEvictionTokenSource.Token));
+                _cache.Set(CacheKey(CacheEntryType.ProjectList), projectList, new CancellationChangeToken(projectEvictionTokenSource.Token));
                 foreach (var project in projectList)
-                    _cache.Set(CacheKey(CacheKeyType.Project, project.Name), project, new CancellationChangeToken(projectEvictionTokenSource.Token));
+                    _cache.Set(CacheKey(CacheEntryType.Project, project.Name), project, new CancellationChangeToken(projectEvictionTokenSource.Token));
 
                 _projectEvictionTokenSource = projectEvictionTokenSource;
 

@@ -14,10 +14,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         public override async Task OnActionExecutedAsync(HttpActionExecutedContext actContext, CancellationToken token)
         {
             if (actContext.Request.Headers.AcceptEncoding.All(x => x.Value != GZipEncoding))
-            {
-                await base.OnActionExecutedAsync(actContext, token);
                 return;
-            }
 
             var contentStream = await actContext.Response.Content.ReadAsStreamAsync();
 
