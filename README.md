@@ -5,9 +5,10 @@ A NuGet feed for Octopus Deploy which creates NuGet packages used to chain deplo
 1. Use the **[Octopus - Create Chain Deployment NuGet Feed micro service](https://github.com/OctopusDeploy/Library/pull/582)** community step template to provision & deploy the NuGet feed micro service. The following parameters do not have a default value and must be provided:
 - API Key
 - Octopus Azure Account
-- Virtual Network Resource Group Name
-- Virtual Network Name
-- Subnet Name
+- Existing Virtual Network Resource Group Name
+- Existing Virtual Network Name
+- Existing Subnet Name
+[Note : This template will not create a Virtual Network/Subnet]
 
 Once deployed all chain functionality is provided by the NuGet feed & the built-in **Deploy a package** step.
 
