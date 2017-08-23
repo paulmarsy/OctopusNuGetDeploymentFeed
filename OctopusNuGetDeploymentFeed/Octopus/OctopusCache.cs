@@ -19,19 +19,19 @@ namespace OctopusDeployNuGetFeed.Octopus
         private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CachePreloadTime = new Dictionary<CacheEntryType, TimeSpan>
         {
             {CacheEntryType.ProjectList, TimeSpan.MaxValue},
-            {CacheEntryType.Channel, TimeSpan.FromDays(10)},
+            {CacheEntryType.Channel, TimeSpan.FromDays(5)},
             {CacheEntryType.Release, TimeSpan.FromDays(3)},
-            {CacheEntryType.JsonDocument, TimeSpan.FromDays(2)}
+            {CacheEntryType.JsonDocument, TimeSpan.FromDays(3)}
         };
 
         private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CacheTime = new Dictionary<CacheEntryType, TimeSpan>
         {
-            {CacheEntryType.ProjectList, TimeSpan.FromHours(1)},
-            {CacheEntryType.Channel, TimeSpan.FromDays(2)},
-            {CacheEntryType.Release, TimeSpan.FromHours(3)},
-            {CacheEntryType.JsonDocument, TimeSpan.FromHours(12)},
-            {CacheEntryType.ReleaseList, TimeSpan.FromMinutes(2)}, // Cache for pagination calls
-            {CacheEntryType.NuGetPackage, TimeSpan.FromHours(2)}
+            {CacheEntryType.ProjectList, TimeSpan.FromHours(2)},
+            {CacheEntryType.Channel, TimeSpan.FromDays(3)},
+            {CacheEntryType.Release, TimeSpan.FromDays(2)},
+            {CacheEntryType.JsonDocument, TimeSpan.FromDays(2)},
+            {CacheEntryType.ReleaseList, TimeSpan.FromMinutes(3)}, // Cache for pagination calls
+            {CacheEntryType.NuGetPackage, TimeSpan.FromHours(1)}
         };
 
         private readonly MemoryCache _cache;
@@ -77,7 +77,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             ReleaseResource release = null;
             for (var skip = 0; semver == null; skip++)
             {
-                release = _server.GetClient($"GetLatestRelease: {project.Name}").List<ReleaseResource>(project.Link("Releases"), new {skip, take = 1}).Items.FirstOrDefault();
+                release = _server.GetClient("Get Latest Release", project.Name).List<ReleaseResource>(project.Link("Releases"), new {skip, take = 1}).Items.FirstOrDefault();
                 if (release == null)
                     return null;
                 semver = release.Version.ToSemanticVersion();
@@ -94,7 +94,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 RegisterPreloadAccess(CacheEntryType.JsonDocument, true, resource.Link("Self"), resource.Link("Self"));
                 entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.JsonDocument]);
-                using (var sourceStream = _server.GetClient($"GetJson: {resource.Link("Self")}").GetContent(resource.Link("Self")))
+                using (var sourceStream = _server.GetClient("Get Json Document", resource.Link("Self")).GetContent(resource.Link("Self")))
                 {
                     return sourceStream.ReadAllBytes();
                 }
@@ -106,7 +106,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             return _cache.GetOrCreate(CacheKey(CacheEntryType.Project, name), entry =>
             {
                 entry.AddExpirationToken(new CancellationChangeToken(_projectEvictionTokenSource.Token));
-                return _server.GetRepository($"GetProject: {name}").Projects.FindByName(name);
+                return _server.GetRepository("Find Project", name).Projects.FindByName(name);
             });
         }
 
@@ -128,7 +128,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 RegisterPreloadAccess(CacheEntryType.Channel, true, channelId, channelId);
                 entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.Channel]);
-                return _server.GetRepository($"GetChannel: {channelId}").Channels.Get(channelId);
+                return _server.GetRepository("Get Channel", channelId).Channels.Get(channelId);
             });
         }
 
@@ -138,7 +138,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.ReleaseList]); // Cache for pagination calls
 
-                return _server.GetRepository($"ListReleases: {project.Name}").Projects.GetAllReleases(project);
+                return _server.GetRepository("Get All Releases", project.Name).Projects.GetAllReleases(project);
             }))
             {
                 var semver = release.Version.ToSemanticVersion();
@@ -214,17 +214,17 @@ namespace OctopusDeployNuGetFeed.Octopus
                                     options.AddExpirationToken(new CancellationChangeToken(_projectEvictionTokenSource.Token));
                                     break;
                                 case CacheEntryType.JsonDocument:
-                                    using (var sourceStream = _server.GetClient($"Preload JsonDocument: {entry.Key}").GetContent((string) entry.Value.state))
+                                    using (var sourceStream = _server.GetClient("Preload Json Document", entry.Key).GetContent((string) entry.Value.state))
                                     {
                                         value = sourceStream.ReadAllBytes();
                                     }
                                     break;
                                 case CacheEntryType.Release:
                                     var castState = ((ProjectResource, string)) entry.Value.state;
-                                    value = _server.GetRepository($"Preload Release: {entry.Key}").Projects.GetReleaseByVersion(castState.Item1, castState.Item2);
+                                    value = _server.GetRepository("Preload Release", entry.Key).Projects.GetReleaseByVersion(castState.Item1, castState.Item2);
                                     break;
                                 case CacheEntryType.Channel:
-                                    value = _server.GetRepository($"Preload Channel: {entry.Key}").Channels.Get((string) entry.Value.state);
+                                    value = _server.GetRepository("Preload Channel", entry.Key).Channels.Get((string) entry.Value.state);
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
@@ -278,7 +278,7 @@ namespace OctopusDeployNuGetFeed.Octopus
                     return _cache.Get<IEnumerable<ProjectResource>>(CacheKey(CacheEntryType.ProjectList));
 
                 var projectEvictionTokenSource = new CancellationTokenSource();
-                var projectList = _server.GetRepository("LoadAllProjects").Projects.GetAll().ToArray();
+                var projectList = _server.GetRepository("Get All Projects", _server.BaseUri).Projects.GetAll().ToArray();
 
                 currentSet.Cancel();
 

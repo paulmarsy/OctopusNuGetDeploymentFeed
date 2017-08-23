@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
@@ -12,8 +11,7 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusServer : IOctopusServer, IDisposable
     {
         private readonly IAppInsights _appInsights;
-        private readonly ThreadLocal<string> _dependencyContext = new ThreadLocal<string>();
-        private readonly ConcurrentDictionary<OctopusRequest, (DateTimeOffset startTime, Stopwatch duration)> _dependencyTracking = new ConcurrentDictionary<OctopusRequest, (DateTimeOffset startTime, Stopwatch duration)>();
+        private readonly ThreadLocal<DependencyTracking> _dependencyTracking = new ThreadLocal<DependencyTracking>();
         private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private readonly ILogger _logger;
         private IHttpOctopusClient _client;
@@ -36,7 +34,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 try
                 {
-                    return (_root ?? (_root = GetRepository("OctopusServer.IsAuthenticated").Client.RefreshRootDocument())) != null;
+                    return (_root ?? (_root = GetRepository("Is Authenticated", nameof(OctopusClient)).Client.RefreshRootDocument())) != null;
                 }
                 catch
                 {
@@ -47,7 +45,7 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public void Dispose()
         {
-            _dependencyContext.Dispose();
+            _dependencyTracking.Dispose();
             _client?.Dispose();
         }
 
@@ -56,8 +54,8 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public (bool created, string id) RegisterNuGetFeed(string host)
         {
-            var existingFeed = GetRepository("RegisterNuGetFeed").Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
-                                                                                            string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
+            var existingFeed = GetRepository("Register NuGet Feed", host).Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                    string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
             var feed = new EnhancedNuGetFeedResource(existingFeed)
             {
                 Name = Constants.OctopusNuGetFeedName,
@@ -70,24 +68,27 @@ namespace OctopusDeployNuGetFeed.Octopus
                 },
                 EnhancedMode = true
             };
-            var feedResult = existingFeed == null ? GetRepository("RegisterNuGetFeed").Feeds.Create(feed) : GetRepository("RegisterNuGetFeed").Feeds.Modify(feed);
+            var feedResult = existingFeed == null ? GetRepository("Register NuGet Feed", "create").Feeds.Create(feed) : GetRepository("Register NuGet Feed", "modify").Feeds.Modify(feed);
 
             return (existingFeed == null, feedResult?.Id);
         }
 
-        internal IHttpOctopusClient GetClient(string context)
+        internal IHttpOctopusClient GetClient(string operation, string target)
         {
-            _logger.Verbose(context);
-            _dependencyContext.Value = context;
-            Requests++;
+            StartDependencyTracking(operation, target);
             return Client;
         }
 
-        internal IOctopusRepository GetRepository(string context)
+        private void StartDependencyTracking(string operation, string target)
         {
-            _logger.Verbose(context);
-            _dependencyContext.Value = context;
+            _dependencyTracking.Value = new DependencyTracking(operation, target);
+            _logger.Verbose(operation + ": " + target);
             Requests++;
+        }
+
+        internal IOctopusRepository GetRepository(string operation, string target)
+        {
+            StartDependencyTracking(operation, target);
             return _repository ?? (_repository = new OctopusRepository(Client));
         }
 
@@ -99,16 +100,39 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         private void ClientOnSendingOctopusRequest(OctopusRequest octopusRequest)
         {
-            _dependencyTracking[octopusRequest] = (DateTimeOffset.UtcNow, Stopwatch.StartNew());
+            _dependencyTracking.Value.Start();
         }
 
         private void ClientOnReceivedOctopusResponse(OctopusResponse octopusResponse)
         {
-            if (!_dependencyTracking.TryRemove(octopusResponse.Request, out (DateTimeOffset startTime, Stopwatch duration) tracking))
-                return;
+            _dependencyTracking.Value.Stop();
+            _appInsights.TrackDependency($"Octopus Deploy API - {_dependencyTracking.Value.Operation}", _dependencyTracking.Value.Operation, _dependencyTracking.Value.Target, octopusResponse.Request.Uri.PathAndQuery, _dependencyTracking.Value.StartTime, _dependencyTracking.Value.Duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
+        }
 
-            tracking.duration.Stop();
-            _appInsights.TrackDependency("Octopus Deploy API", _dependencyContext.Value, octopusResponse.Request.Uri.Host, octopusResponse.Request.Uri.PathAndQuery, tracking.startTime, tracking.duration.Elapsed, octopusResponse.StatusCode.ToString(), octopusResponse.StatusCode == HttpStatusCode.OK);
+        private class DependencyTracking
+        {
+            public DependencyTracking(string operation, string target)
+            {
+                Operation = operation;
+                Target = target;
+            }
+
+            public DateTimeOffset StartTime { get; private set; }
+            public Stopwatch Duration { get; private set; }
+
+            public string Operation { get; }
+            public string Target { get; }
+
+            public void Start()
+            {
+                StartTime = DateTimeOffset.UtcNow;
+                Duration = Stopwatch.StartNew();
+            }
+
+            public void Stop()
+            {
+                Duration.Stop();
+            }
         }
     }
 }

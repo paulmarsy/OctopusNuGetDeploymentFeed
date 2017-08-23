@@ -113,11 +113,6 @@ namespace OctopusDeployNuGetFeed.Logging
             _telemetryClient.TrackEvent(eventName, properties);
         }
 
-        public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
-        {
-            _telemetryClient.TrackDependency(dependencyName, commandName, startTime, duration, success);
-        }
-
         public void TrackException(Exception exception, IDictionary<string, string> properties = null)
         {
             _telemetryClient.TrackException(exception, properties);

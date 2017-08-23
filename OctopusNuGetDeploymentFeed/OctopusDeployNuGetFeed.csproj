@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
-    <AssemblyVersion>2.1.3.0</AssemblyVersion>
-    <FileVersion>2.1.3.0</FileVersion>
+    <AssemblyVersion>2.1.4.0</AssemblyVersion>
+    <FileVersion>2.1.4.0</FileVersion>
     <Authors>Paul Marston</Authors>
     <Product>Octopus Deploy - NuGet Deployment Feed</Product>
     <Description>Octopus Deploy - NuGet Deployment Feed</Description>
