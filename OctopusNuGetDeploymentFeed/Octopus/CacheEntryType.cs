@@ -2,12 +2,12 @@ namespace OctopusDeployNuGetFeed.Octopus
 {
     public enum CacheEntryType
     {
-        JsonDocument,
         ProjectList,
         Project,
-        Release,
         ReleaseList,
+        Release,
         Channel,
+        JsonDocument,
         NuGetPackage
     }
 }

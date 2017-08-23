@@ -23,18 +23,19 @@ namespace OctopusDeployNuGetFeed.Octopus
         private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CachePreloadTime = new Dictionary<CacheEntryType, TimeSpan>
         {
             {CacheEntryType.ProjectList, TimeSpan.MaxValue},
-            {CacheEntryType.Channel, TimeSpan.FromDays(5)},
             {CacheEntryType.Release, TimeSpan.FromDays(3)},
+            {CacheEntryType.Channel, TimeSpan.FromDays(5)},
             {CacheEntryType.JsonDocument, TimeSpan.FromDays(3)}
         };
 
         private static readonly IReadOnlyDictionary<CacheEntryType, TimeSpan> CacheTime = new Dictionary<CacheEntryType, TimeSpan>
         {
             {CacheEntryType.ProjectList, TimeSpan.FromHours(2)},
-            {CacheEntryType.Channel, TimeSpan.FromDays(3)},
-            {CacheEntryType.Release, TimeSpan.FromDays(2)},
-            {CacheEntryType.JsonDocument, TimeSpan.FromDays(2)},
+            {CacheEntryType.Project, TimeSpan.FromHours(2)},
             {CacheEntryType.ReleaseList, TimeSpan.FromMinutes(3)}, // Cache for pagination calls
+            {CacheEntryType.Release, TimeSpan.FromDays(2)},
+            {CacheEntryType.Channel, TimeSpan.FromDays(3)},
+            {CacheEntryType.JsonDocument, TimeSpan.FromDays(2)},
             {CacheEntryType.NuGetPackage, TimeSpan.FromHours(1)}
         };
 
@@ -119,10 +120,8 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public IEnumerable<ProjectResource> GetAllProjects()
         {
-            var currentProjectSet = _projectEvictionTokenSource;
-
             if (!_cache.TryGetValue(CacheKey(CacheEntryType.ProjectList), out IEnumerable<ProjectResource> projects))
-                projects = LoadAllProjects(currentProjectSet);
+                projects = Enumerable.Empty<ProjectResource>();
 
             return projects;
         }
@@ -183,7 +182,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             });
         }
 
-
         private void RegisterPreloadAccess(CacheEntryType type, bool updated, object state, params string[] id)
         {
             var lastUpdate = _preloadRegistry.ContainsKey(CacheKey(type, id)) ? _preloadRegistry[CacheKey(type, id)].lastUpdate : DateTimeOffset.MinValue;
@@ -212,15 +210,12 @@ namespace OctopusDeployNuGetFeed.Octopus
                     else if (DateTimeOffset.UtcNow - entry.Value.lastUpdate >= CacheTime[entry.Value.type])
                     {
                         object value = null;
-                        var options = new MemoryCacheEntryOptions();
-                        options.SetAbsoluteExpiration(CacheTime[entry.Value.type].Add(TimeSpan.FromHours(1)));
                         try
                         {
                             switch (entry.Value.type)
                             {
                                 case CacheEntryType.ProjectList:
-                                    value = LoadAllProjects(_projectEvictionTokenSource);
-                                    options.AddExpirationToken(new CancellationChangeToken(_projectEvictionTokenSource.Token));
+                                    LoadAllProjects();
                                     break;
                                 case CacheEntryType.JsonDocument:
                                     using (var sourceStream = _server.GetClient("Preload Json Document", entry.Key).GetContent((string) entry.Value.state))
@@ -249,10 +244,10 @@ namespace OctopusDeployNuGetFeed.Octopus
                         }
                         else
                         {
-                            _cache.Set(entry.Key, value, options);
+                            _cache.Set(entry.Key, value, CacheTime[entry.Value.type].Add(TimeSpan.FromHours(1)));
                             _preloadRegistry[entry.Key] = (lastAccess: entry.Value.lastAccess, lastUpdate: DateTimeOffset.UtcNow, type: entry.Value.type, state: entry.Value.state);
-                            Preloads++;
                         }
+                        Preloads++;
                     }
                 }
             }
@@ -279,29 +274,17 @@ namespace OctopusDeployNuGetFeed.Octopus
             return interval;
         }
 
-        private IEnumerable<ProjectResource> LoadAllProjects(CancellationTokenSource currentSet)
+        private void LoadAllProjects()
         {
-            lock (currentSet)
-            {
-                if (currentSet.IsCancellationRequested || currentSet != _projectEvictionTokenSource)
-                    return _cache.Get<IEnumerable<ProjectResource>>(CacheKey(CacheEntryType.ProjectList));
+            var projectList = _server.GetRepository("Get All Projects", _server.BaseUri).Projects.GetAll().ToArray();
 
-                var projectEvictionTokenSource = new CancellationTokenSource();
-                var projectList = _server.GetRepository("Get All Projects", _server.BaseUri).Projects.GetAll().ToArray();
+            var updatedProjectToken = new CancellationTokenSource();
+            _cache.Set(CacheKey(CacheEntryType.ProjectList), projectList, new CancellationChangeToken(updatedProjectToken.Token));
+            foreach (var project in projectList)
+                _cache.Set(CacheKey(CacheEntryType.Project, project.Name), project, new CancellationChangeToken(updatedProjectToken.Token));
 
-                currentSet.Cancel();
-
-                var options = new MemoryCacheEntryOptions();
-                options.SetAbsoluteExpiration(CacheTime[CacheEntryType.Project]);
-                options.AddExpirationToken(new CancellationChangeToken(projectEvictionTokenSource.Token));
-                _cache.Set(CacheKey(CacheEntryType.ProjectList), projectList, options);
-                foreach (var project in projectList)
-                    _cache.Set(CacheKey(CacheEntryType.Project, project.Name), project, options);
-
-                _projectEvictionTokenSource = projectEvictionTokenSource;
-
-                return projectList;
-            }
+            _projectEvictionTokenSource.Cancel();
+            _projectEvictionTokenSource = updatedProjectToken;
         }
     }
 }
