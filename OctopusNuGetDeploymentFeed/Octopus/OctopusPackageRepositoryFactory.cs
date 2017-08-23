@@ -138,6 +138,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             server.ConfigureAppInsightsDependencyTracking();
 
             var cache = new OctopusCache(server, _logger);
+            cache.Initialise();
 
             var repository = new OctopusPackageRepository(server, cache);
 

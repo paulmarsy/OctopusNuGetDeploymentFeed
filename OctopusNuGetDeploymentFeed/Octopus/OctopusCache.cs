@@ -54,8 +54,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             _cache = new MemoryCache(new MemoryCacheOptions());
             _cacheSizeRef = new SizedReference(_cache);
             _projectEvictionTokenSource = new CancellationTokenSource();
-            RegisterPreloadAccess(CacheEntryType.ProjectList, false, null);
-            _timer = new Timer(TimerHandler, null, TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+            _timer = new Timer(TimerHandler, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         public int Preloads { get; private set; }
@@ -182,6 +181,12 @@ namespace OctopusDeployNuGetFeed.Octopus
             });
         }
 
+        public void Initialise()
+        {
+            RegisterPreloadAccess(CacheEntryType.ProjectList, false, null);
+            TimerHandler(null);
+        }
+
         private void RegisterPreloadAccess(CacheEntryType type, bool updated, object state, params string[] id)
         {
             var lastUpdate = _preloadRegistry.ContainsKey(CacheKey(type, id)) ? _preloadRegistry[CacheKey(type, id)].lastUpdate : DateTimeOffset.MinValue;
@@ -224,8 +229,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                                     }
                                     break;
                                 case CacheEntryType.Release:
-                                    var castState = ((ProjectResource prpject, string version)) entry.Value.state;
-                                    value = _server.GetRepository("Preload Release", entry.Key).Projects.GetReleaseByVersion(castState.prpject, castState.version);
+                                    var castState = ((ProjectResource project, string version)) entry.Value.state;
+                                    value = _server.GetRepository("Preload Release", entry.Key).Projects.GetReleaseByVersion(castState.project, castState.version);
                                     break;
                                 case CacheEntryType.Channel:
                                     value = _server.GetRepository("Preload Channel", entry.Key).Channels.Get((string) entry.Value.state);
@@ -233,21 +238,21 @@ namespace OctopusDeployNuGetFeed.Octopus
                                 default:
                                     throw new ArgumentOutOfRangeException();
                             }
+                            Preloads++;
                         }
                         catch (Exception e)
                         {
                             _logger.Exception(e);
                         }
-                        if (value == null && CachePreloadTime[entry.Value.type] != TimeSpan.MaxValue)
-                        {
-                            _preloadRegistry.TryRemove(entry.Key, out _);
-                        }
-                        else
+                        if (value != null)
                         {
                             _cache.Set(entry.Key, value, CacheTime[entry.Value.type].Add(TimeSpan.FromHours(1)));
                             _preloadRegistry[entry.Key] = (lastAccess: entry.Value.lastAccess, lastUpdate: DateTimeOffset.UtcNow, type: entry.Value.type, state: entry.Value.state);
                         }
-                        Preloads++;
+                        else if (CachePreloadTime[entry.Value.type] != TimeSpan.MaxValue)
+                        {
+                            _preloadRegistry.TryRemove(entry.Key, out _);
+                        }
                     }
                 }
             }
