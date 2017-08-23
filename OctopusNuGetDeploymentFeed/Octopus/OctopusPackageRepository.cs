@@ -46,7 +46,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             if (channel == null)
                 return null;
 
-            return new ReleasePackage(_server, Cache, project, release, channel);
+            return new ReleasePackage(_server, _cache, project, release, channel);
         }
 
         public IEnumerable<INuGetPackage> FindProjectReleases(string projectName, CancellationToken token)

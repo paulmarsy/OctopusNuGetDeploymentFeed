@@ -10,6 +10,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
     public class GzipCompressedAttribute : ActionFilterAttribute
     {
         private const string GZipEncoding = "gzip";
+
         public override async Task OnActionExecutedAsync(HttpActionExecutedContext actContext, CancellationToken token)
         {
             if (actContext.Exception != null || actContext.Request.Headers.AcceptEncoding.All(x => x.Value != GZipEncoding))

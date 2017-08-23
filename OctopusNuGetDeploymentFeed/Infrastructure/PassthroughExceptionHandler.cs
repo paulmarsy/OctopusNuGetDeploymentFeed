@@ -1,5 +1,4 @@
-﻿using System.Runtime.ExceptionServices;
-using System.Web.Http.ExceptionHandling;
+﻿using System.Web.Http.ExceptionHandling;
 using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Infrastructure
@@ -16,7 +15,6 @@ namespace OctopusDeployNuGetFeed.Infrastructure
         public override void Handle(ExceptionHandlerContext context)
         {
             _logger.Exception(context.Exception);
-            ExceptionDispatchInfo.Capture(context.Exception).Throw();
         }
     }
 }
