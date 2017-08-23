@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Autofac;
 using Autofac.Integration.WebApi;
-using JetBrains.Annotations;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
 using Topshelf;
@@ -131,7 +130,7 @@ namespace OctopusDeployNuGetFeed
 
         private void AfterUninstall()
         {
-            _logger.Info($"Removing URL reservation...");
+            _logger.Info("Removing URL reservation...");
             StartProcess("netsh.exe", $"http delete urlacl url={BaseAddress}");
         }
 
@@ -140,7 +139,6 @@ namespace OctopusDeployNuGetFeed
             StartProcess(fileName, arguments, true);
         }
 
-        [AssertionMethod]
         private static void StartProcess(string fileName, string arguments, bool checkExitCode)
         {
             var process = Process.Start(new ProcessStartInfo

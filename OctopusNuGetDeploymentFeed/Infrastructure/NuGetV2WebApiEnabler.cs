@@ -52,7 +52,6 @@ namespace OctopusDeployNuGetFeed.Infrastructure
 
             var searchAction = builder.Action("Search");
             searchAction.Parameter<string>("searchTerm");
-            searchAction.Parameter<bool>("includePrerelease");
             searchAction.ReturnsCollectionFromEntitySet(packagesCollection);
 
             var findPackagesAction = builder.Action("FindPackagesById");

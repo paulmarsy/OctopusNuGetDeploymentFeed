@@ -14,7 +14,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         IEnumerable<ProjectResource> GetAllProjects();
         ChannelResource GetChannel(string channelId);
         IEnumerable<ReleaseResource> ListReleases(ProjectResource project);
-        byte[] GetJson(Resource resource);
+        string GetJson(Resource resource);
         ReleaseResource GetRelease(ProjectResource project, SemanticVersion semver);
         byte[] GetNuGetPackage(ProjectResource project, ReleaseResource release, Func<byte[]> nugetPackageFactory);
         ProjectResource TryGetProject(string name);

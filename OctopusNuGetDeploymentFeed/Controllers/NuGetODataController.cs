@@ -58,13 +58,13 @@ namespace OctopusDeployNuGetFeed.Controllers
             return TransformToQueryResult(options, sourceQuery);
         }
 
-        // GET/POST /Search()?searchTerm=&targetFramework=&includePrerelease=
+        // GET/POST /Search()?searchTerm=&includePrerelease=
         [HttpGet]
         [HttpPost]
         [GzipCompressed]
-        public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm = "", [FromODataUri] bool includePrerelease = false, [FromODataUri] bool includeDelisted = false, CancellationToken token = default(CancellationToken))
+        public IHttpActionResult Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm, CancellationToken token = default(CancellationToken))
         {
-            var sourceQuery = Repository.FindProjects(searchTerm, token).Where(package => package.Listed || package.Listed == false && includeDelisted);
+            var sourceQuery = Repository.FindProjects(searchTerm, token).Where(project => project.Listed);
 
             return TransformToQueryResult(options, sourceQuery);
         }
@@ -103,7 +103,7 @@ namespace OctopusDeployNuGetFeed.Controllers
 
         private IHttpActionResult TransformToQueryResult(ODataQueryOptions<ODataPackage> options, IEnumerable<INuGetPackage> sourceQuery)
         {
-            return new QueryResult<ODataPackage>(options, sourceQuery.Distinct().Select(AsODataPackage).AsQueryable(), this, MaxPageSize);
+            return new QueryResult<ODataPackage>(options, sourceQuery.Select(AsODataPackage).AsQueryable(), this, MaxPageSize);
         }
 
         private static ODataPackage AsODataPackage(INuGetPackage package)

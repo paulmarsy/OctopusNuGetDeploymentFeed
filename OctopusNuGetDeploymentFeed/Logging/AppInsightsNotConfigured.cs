@@ -31,9 +31,5 @@ namespace OctopusDeployNuGetFeed.Logging
         public void TrackMetric(string name, double value)
         {
         }
-
-        public void TrackDependency(string dependencyName, string commandName, DateTimeOffset startTime, TimeSpan duration, bool success)
-        {
-        }
     }
 }

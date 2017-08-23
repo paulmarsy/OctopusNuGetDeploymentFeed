@@ -11,7 +11,7 @@ namespace OctopusDeployNuGetFeed.Infrastructure
     {
         public static bool WildcardMatch(this string input, string pattern)
         {
-            return Regex.IsMatch(input, $"^{Regex.Escape(pattern).Replace("\\?", ".").Replace("\\*", ".*")}$", RegexOptions.IgnoreCase);
+            return Regex.IsMatch(input, "^" + Regex.Escape(pattern).Replace("\\?", ".").Replace("\\*", ".*") + "$", RegexOptions.IgnoreCase);
         }
 
         public static SemanticVersion ToSemanticVersion(this string version, [CallerFilePath] string callerFilePath = null, [CallerMemberName] string callerMemberName = null)
