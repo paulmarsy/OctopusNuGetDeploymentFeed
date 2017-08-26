@@ -1,0 +1,65 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "loadBalancerName": {
+            "type": "string"
+        },
+        "subnetId": {
+            "type": "string"
+        }
+    },
+    "resources": [{
+        "apiVersion": "2016-03-30",
+        "name": "[parameters('loadBalancerName')]",
+        "type": "Microsoft.Network/loadBalancers",
+        "location": "[resourceGroup().location]",
+        "properties": {
+            "frontendIPConfigurations": [{
+                "name": "Frontend",
+                "properties": {
+                    "privateIPAllocationMethod": "Dynamic",
+                    "subnet": {
+                        "id": "[parameters('subnetId')]"
+                    }
+                }
+            }],
+            "backendAddressPools": [{
+                "name": "Backend"
+            }],
+            "loadBalancingRules": [{
+                "properties": {
+                    "frontendIPConfiguration": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
+                    },
+                    "backendAddressPool": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/backendAddressPools/Backend')]"
+                    },
+                    "probe": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/probes/HttpProbe')]"
+                    },
+                    "protocol": "Tcp",
+                    "frontendPort": 80,
+                    "backendPort": 80
+                },
+                "Name": "HTTP"
+            }],
+            "probes": [{
+                "name": "HttpProbe",
+                "properties": {
+                    "protocol": "Http",
+                    "port": 80,
+                    "requestPath": "/api/test",
+                    "intervalInSeconds": 15,
+                    "numberOfProbes": 2
+                }
+            }]
+        }
+    }],
+    "outputs": {
+        "ipAddress": {
+            "type": "string",
+            "value": "[reference(parameters('loadBalancerName')).frontendIPConfigurations[0].properties.privateIPAddress]"
+        }
+    }
+}

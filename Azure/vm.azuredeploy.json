@@ -5,6 +5,10 @@
     "namePrefix": {
       "type": "string"
     },
+    "virtualMachineInstances": {
+      "type": "int",
+      "defaultValue": 1
+    },
     "virtualMachineSize": {
       "type": "string",
       "defaultValue": "Standard_A1_v2"
@@ -136,7 +140,7 @@
           "fileUris": [
             "[variables('scriptUri')]"
           ],
-          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -Hostname \"',reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
+          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
         }
       }
     }
