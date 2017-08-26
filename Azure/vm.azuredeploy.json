@@ -35,7 +35,7 @@
     "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
     "networkInterfaceName": "[concat(parameters('namePrefix'), '-NIC')]",
     "networkSecurityGroupName": "[concat(parameters('namePrefix'), '-NSG')]",
-    "scriptUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Scripts/install.vm.ps1"
+    "scriptUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/install.ps1"
   },
   "resources": [{
       "type": "Microsoft.Resources/deployments",
