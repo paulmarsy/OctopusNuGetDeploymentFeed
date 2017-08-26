@@ -130,8 +130,9 @@
                                 "fileUris": [
                                     "[variables('scriptUri')]"
                                 ]
-                            },
-                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
+                            },"protectedSettings":{
+                                "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
+                            }
                         }
                     }]
                 },
