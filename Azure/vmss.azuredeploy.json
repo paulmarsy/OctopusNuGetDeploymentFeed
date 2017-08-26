@@ -118,6 +118,23 @@
                         "provisionVMAgent": true
                     }
                 },
+                "extensionProfile": {
+                    "extensions": [{
+                        "name": "InstallOctopusDeployNuGetFeed",
+                        "properties": {
+                            "publisher": "Microsoft.Compute",
+                            "type": "CustomScriptExtension",
+                            "typeHandlerVersion": "1.8",
+                            "autoUpgradeMinorVersion": true,
+                            "settings": {
+                                "fileUris": [
+                                    "[variables('scriptUri')]"
+                                ]
+                            },
+                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
+                        }
+                    }]
+                },
                 "networkProfile": {
                     "networkInterfaceConfigurations": [{
                         "name": "[variables('networkInterfaceName')]",
@@ -140,23 +157,6 @@
                         }
                     }]
                 }
-            },
-            "extensionProfile": {
-                "extensions": [{
-                    "name": "InstallOctopusDeployNuGetFeed",
-                    "properties": {
-                        "publisher": "Microsoft.Compute",
-                        "type": "CustomScriptExtension",
-                        "typeHandlerVersion": "1.8",
-                        "autoUpgradeMinorVersion": true,
-                        "settings": {
-                            "fileUris": [
-                                "[variables('scriptUri')]"
-                            ]
-                        },
-                        "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File install.ps1 -AppInsightsKey \"', reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value, '\" -EncodedCustomDeployScript \"', base64(parameters('customDeployScript')), '\"')]"
-                    }
-                }]
             }
         }
     }],
