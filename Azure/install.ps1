@@ -1,4 +1,4 @@
-param($AppInsightsKey, $Hostname, $EncodedCustomDeployScript)
+param($AppInsightsKey, $EncodedCustomDeployScript)
 
 Write-Output "Running on $(Get-Date)"
 
@@ -24,7 +24,7 @@ Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $AppFilePath -Verb
 $deployedVersion = & $AppFilePath version
 Write-Output "Version deployed: $deployedVersion"
 
-& $AppFilePath install -aikey:$AppInsightsKey -host:$Hostname
+& $AppFilePath install -aikey:$AppInsightsKey
 if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not install" }
 
 if (!([string]::IsNullOrWhiteSpace($EncodedInstEncodedCustomDeployScriptallScript))) {
