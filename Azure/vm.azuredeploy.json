@@ -2,7 +2,7 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "name": {
+    "namePrefix": {
       "type": "string"
     },
     "virtualMachineSize": {
@@ -29,12 +29,12 @@
     }
   },
   "variables": {
-    "virtualMachineName": "[parameters('name')]",
+    "virtualMachineName": "[parameters('namePrefix')]",
     "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
     "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
     "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
-    "networkInterfaceName": "[concat(parameters('name'), '-NIC')]",
-    "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]",
+    "networkInterfaceName": "[concat(parameters('namePrefix'), '-NIC')]",
+    "networkSecurityGroupName": "[concat(parameters('namePrefix'), '-NSG')]",
     "scriptUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Scripts/install.vm.ps1"
   },
   "resources": [{
@@ -47,8 +47,8 @@
           "uri": "[concat(variables('templateRootUri'), 'common.json')]"
         },
         "parameters": {
-          "name": {
-            "value": "[parameters('name')]"
+          "namePrefix": {
+            "value": "[parameters('namePrefix')]"
           }
         }
       }

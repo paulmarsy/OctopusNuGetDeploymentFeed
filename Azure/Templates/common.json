@@ -2,13 +2,13 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "name": {
+        "namePrefix": {
             "type": "string"
         }
     },
     "variables": {
-        "appInsightsName": "[concat(parameters('name'), 'AppInsights')]",
-        "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]"
+        "appInsightsName": "[concat(parameters('namePrefix'), 'AppInsights')]",
+        "networkSecurityGroupName": "[concat(parameters('namePrefix'), '-NSG')]"
     },
     "resources": [{
             "apiVersion": "2015-05-01",
@@ -16,7 +16,7 @@
             "type": "Microsoft.Insights/components",
             "location": "[resourceGroup().location]",
             "properties": {
-                "ApplicationId": "[parameters('name')]",
+                "ApplicationId": "[parameters('namePrefix')]",
                 "Application_Type": "web",
                 "Flow_Type": "Bluefield",
                 "Request_Source": "rest"
