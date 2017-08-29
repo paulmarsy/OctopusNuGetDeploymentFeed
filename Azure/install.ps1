@@ -1,36 +1,40 @@
-param($AppInsightsKey, $EncodedCustomDeployScript)
+param($AppInsightsKey, $EncodedCustomDeployScript, $DownloadUri)
 
-Write-Output "Running on $(Get-Date)"
+Write-Output "Starting install at $(Get-Date)"
 
-$BinaryName = 'OctopusDeployNuGetFeed.exe'
-$InstallDir = 'C:\OctopusDeployNuGetFeed'
-$AppFilePath = Join-Path $InstallDir $BinaryName
+$installDir = 'C:\OctopusDeployNuGetFeed'
+if (!(Test-Path $installDir)) {
+    New-Item -Path $installDir -ItemType Directory
+}
 
-if (Test-Path $AppFilePath) {
-    & $AppFilePath stop
-    & $AppFilePath uninstall
-    $existingVersion = & $AppFilePath version
+$binaryName = 'OctopusDeployNuGetFeed.exe'
+$appFilePath = Join-Path $installDir $binaryName
+
+if (Test-Path $appFilePath) {
+    & $appFilePath stop
+    & $appFilePath uninstall
+    $existingVersion = & $appFilePath version
     Write-Output "Existing version: $existingVersion"
 }
 
-$request = [System.Net.WebRequest]::Create("https://github.com/paulmarsy/OctopusNuGetDeploymentFeed/releases/latest/")
-$request.AllowAutoRedirect = $false
-$downloadUri = ([string]$request.GetResponse().GetResponseHeader("Location")).Replace('tag','download') + '/' + $BinaryName
+if ([string]::IsNullOrWhiteSpace($DownloadUri)) {
+    $request = [System.Net.WebRequest]::Create("https://github.com/paulmarsy/OctopusNuGetDeploymentFeed/releases/latest/")
+    $request.AllowAutoRedirect = $false
+    $DownloadUri = ([string]$request.GetResponse().GetResponseHeader("Location")).Replace('tag','download') + '/' + $binaryName
+}
+Write-Output "Downloading $DownloadUri to $appFilePath"
 
-Write-Output "Downloading $downloadUri to $AppFilePath"
-if (!(Test-Path $InstallDir)) { New-Item -Path $InstallDir -ItemType Directory }
-Invoke-WebRequest -UseBasicParsing -Uri $downloadUri -OutFile $AppFilePath -Verbose
-
-$deployedVersion = & $AppFilePath version
+Invoke-WebRequest -UseBasicParsing -Uri $DownloadUri -OutFile $appFilePath -Verbose
+$deployedVersion = & $appFilePath version
 Write-Output "Version deployed: $deployedVersion"
 
-& $AppFilePath install -aikey:$AppInsightsKey
-if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not install" }
+& $appFilePath install -aikey:$AppInsightsKey
+if ($LASTEXITCODE -ne 0) { throw "$appFilePath did not install, exit code: $LASTEXITCODE" }
 
-if (!([string]::IsNullOrWhiteSpace($EncodedInstEncodedCustomDeployScriptallScript))) {
+if (!([string]::IsNullOrWhiteSpace($EncodedCustomDeployScript))) {
     $customScript = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedCustomDeployScript))
     [scriptblock]::Create($customScript).Invoke()
 }
 
-& $AppFilePath start
-if ($LASTEXITCODE -ne 0) { throw "$BinaryName did not start" }
+& $appFilePath start
+if ($LASTEXITCODE -ne 0) { throw "$appFilePath did not start, exit code: $LASTEXITCODE" }

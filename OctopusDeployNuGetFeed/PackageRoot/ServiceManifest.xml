@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ServiceManifest Name="OctopusDeployNuGetFeed"
+                 Version="1.0.0"
+                 xmlns="http://schemas.microsoft.com/2011/01/fabric"
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ServiceTypes>
+    <StatelessServiceType ServiceTypeName="NuGetFeedService" />
+    <StatefulServiceType ServiceTypeName="OctopusProjectRepositoryService" HasPersistedState="true" />
+    <StatefulServiceType ServiceTypeName="OctopusReleaseRepositoryService" HasPersistedState="true" />
+  </ServiceTypes>
+
+  <CodePackage Name="Code" Version="1.0.0">
+    <EntryPoint>
+      <ExeHost>
+        <Program>OctopusDeployNuGetFeed.exe</Program>
+      </ExeHost>
+    </EntryPoint>
+  </CodePackage>
+
+  <!-- Config package is the contents of the Config directoy under PackageRoot that contains an 
+       independently-updateable and versioned set of custom configuration settings for your service. -->
+  <ConfigPackage Name="Config" Version="1.0.0" />
+
+  <Resources>
+    <Endpoints>
+      <!-- External / Public -->
+      <Endpoint Name="NuGetFeedServiceEndpoint" Type="Input" Protocol="http" Port="80" />
+
+      <!-- Internal / Private -->
+      <Endpoint Name="OctopusProjectRepositoryServiceEndpoint" Protocol="tcp" />
+      <Endpoint Name="OctopusReleaseRepositoryServiceEndpoint" Protocol="tcp" />
+      <Endpoint Name="OctopusProjectRepositoryServiceReplicatorEndpoint" />
+      <Endpoint Name="OctopusReleaseRepositoryServiceReplicatorEndpoint" />
+    </Endpoints>
+  </Resources>
+</ServiceManifest>

@@ -1,0 +1,128 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "type": "string"
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "virtualNetworkSubnetName": {
+            "type": "string"
+        }      
+    },
+    "variables": {
+        "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
+        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+        "loadBalancerFrontend":"[variables(concat(parameters('type'),'LoadBalancerFrontend'))]",
+        "internalLoadBalancerFrontend":{
+            "privateIPAllocationMethod": "Dynamic",
+            "subnet": {
+                "id": "[variables('subnetRef')]"
+            }
+        },
+        "publicLoadBalancerFrontend": {
+            "publicIPAddress": {
+            "id": "[variables('publicIPAddressID')]"
+            }
+        }
+    },
+    "resources": [{
+        "apiVersion": "2015-05-01-preview",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "[parameters('publicIPAddressName')]",
+        "location": "[resourceGroup().location]",
+        "properties": {
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+          "dnsSettings": {
+            "domainNameLabel": "[parameters('dnsNameforLBIP')]"
+          }
+        }
+      },{
+        "type": "microsoft.insights/webtests",
+        "name": "[parameters('webtests_url_ping_test_octopusfeedappinsights_name')]",
+        "apiVersion": "2015-05-01",
+        "location": "northeurope",
+        "properties": {
+            "SyntheticMonitorId": "[parameters('webtests_url_ping_test_octopusfeedappinsights_name')]",
+            "Name": "URL Ping Test",
+            "kind": "ping",
+            "Enabled": true,
+            "Frequency": 300,
+            "Timeout": 30,
+            "Locations": [
+                {
+                    "Id": "emea-nl-ams-azr"
+                },
+                {
+                    "Id": "emea-gb-db3-azr"
+                }
+            ],
+            "Configuration": {
+                "WebTest": "[concat('<WebTest Name=\"', parameters('tests')[0].name, '\"',  ' Id=\"', parameters('tests')[0].guid ,'\"    Enabled=\"True\" CssProjectStructure=\"\" CssIteration=\"\" Timeout=\"0\" WorkItemIds=\"\" xmlns=\"http://microsoft.com/schemas/VisualStudio/TeamTest/2010\" Description=\"\" CredentialUserName=\"\" CredentialPassword=\"\" PreAuthenticate=\"True\" Proxy=\"default\" StopOnError=\"False\" RecordedResultFile=\"\" ResultsLocale=\"\">        <Items>        <Request Method=\"GET\" Guid=\"a5f10126-e4cd-570d-961c-cea43999a200\" Version=\"1.1\" Url=\"', parameters('tests')[0].url ,'\" ThinkTime=\"0\" Timeout=\"300\" ParseDependentRequests=\"True\" FollowRedirects=\"True\" RecordResult=\"True\" Cache=\"False\" ResponseTimeGoal=\"0\" Encoding=\"utf-8\" ExpectedHttpStatusCode=\"', parameters('tests')[0].expected ,'\" ExpectedResponseUrl=\"\" ReportingName=\"\" IgnoreHttpStatusCode=\"False\" /></Items></WebTest>')]"
+            },
+            "provisioningState": "Succeeded"
+        }},
+        {
+            "apiVersion": "2016-03-30",
+            "name": "[variables('loadBalancerName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "Frontend",
+                        "properties": "[variables('loadBalancerFrontend')]"
+                    }
+                ],
+                "backendAddressPools": [
+                  {
+                    "name": "Backend"
+                  }
+                ],
+                "loadBalancingRules": [
+                  {
+                    "properties": {
+                      "frontendIPConfiguration": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
+                      },
+                      "backendAddressPool": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                      },
+                      "probe": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/HttpProbe')]"
+                      },
+                      "protocol": "Tcp",
+                      "frontendPort": 80,
+                      "backendPort": 80
+                    },  
+                    "Name": "HTTP"
+                  }
+                ],
+                "probes": [
+                  {
+                    "name": "HttpProbe",
+                    "properties": {
+                      "protocol": "Http",
+                      "port": 80,
+                      "requestPath": "/api/test",
+                      "intervalInSeconds": 15,
+                      "numberOfProbes": 2
+                    }
+                  }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "ipAddress": {
+            "type": "string",
+            "value": "[reference(variables('loadBalancerName')).frontendIPConfigurations[0].properties.privateIPAddress]"
+    }
+}
+}          

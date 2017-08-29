@@ -10,4 +10,5 @@
 # ReSharper is a .NET coding add-in
 *.DotSettings.user
 
+packages/*
 .DS_Store
