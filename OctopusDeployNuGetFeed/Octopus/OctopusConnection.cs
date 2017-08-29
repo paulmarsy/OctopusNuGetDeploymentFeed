@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Octopus.Client;
 using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.Logging;
@@ -11,12 +12,12 @@ namespace OctopusDeployNuGetFeed.Octopus
     public class OctopusConnection : IOctopusConnection, IDisposable
     {
         private readonly IAppInsights _appInsights;
-        private readonly ThreadLocal<DependencyTracking> _dependencyTracking = new ThreadLocal<DependencyTracking>();
+        private readonly AsyncLocal<DependencyTracking> _dependencyTracking = new AsyncLocal<DependencyTracking>();
         private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private readonly ILogger _logger;
-        private IHttpOctopusClient _client;
-        private IOctopusRepository _repository;
-        private RootResource _root;
+        private IOctopusAsyncClient _client;
+        private IOctopusAsyncRepository _repository;
+        private bool? _isAuthenticated;
 
         public OctopusConnection(IAppInsights appInsights, ILogger logger, string baseUri, string apiKey)
         {
@@ -25,35 +26,33 @@ namespace OctopusDeployNuGetFeed.Octopus
             _endpoint = new Lazy<OctopusServerEndpoint>(() => new OctopusServerEndpoint(baseUri, apiKey));
         }
 
-        private IHttpOctopusClient Client => _client ?? (_client = new OctopusClient(_endpoint.Value));
-
-        public bool IsAuthenticated
+        public async Task<bool> IsAuthenticated()
         {
-            get
+            if (_isAuthenticated.HasValue && _isAuthenticated.Value)
+                return true;
+            try
             {
-                try
-                {
-                    return (_root ?? (_root = GetRepository("Is Authenticated", nameof(OctopusClient)).Client.RefreshRootDocument())) != null;
-                }
-                catch
-                {
-                    return false;
-                }
+                _isAuthenticated = await GetRepositoryAsync("Is Authenticated", nameof(OctopusClient)) != null;
+                return _isAuthenticated.Value;
+            }
+            catch
+            {
+                return false;
             }
         }
 
         public void Dispose()
         {
-            _dependencyTracking.Dispose();
             _client?.Dispose();
         }
 
         public string BaseUri => _endpoint.Value.OctopusServer.ToString();
         public string ApiKey => _endpoint.Value.ApiKey;
 
-        public (bool created, string id) RegisterNuGetFeed(string host)
+        public async Task<(bool created, string id)> RegisterNuGetFeed(string host)
         {
-            var existingFeed = GetRepository("Register NuGet Feed", host).Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
+            var repo = GetRepository("Register NuGet Feed", host);
+            var existingFeed = await repo.Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
                                                                                                     string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
             var feed = new EnhancedNuGetFeedResource(existingFeed)
             {
@@ -67,15 +66,27 @@ namespace OctopusDeployNuGetFeed.Octopus
                 },
                 EnhancedMode = true
             };
-            var feedResult = existingFeed == null ? GetRepository("Register NuGet Feed", "create").Feeds.Create(feed) : GetRepository("Register NuGet Feed", "modify").Feeds.Modify(feed);
-
-            return (existingFeed == null, feedResult?.Id);
+            if (existingFeed == null)
+            {
+                var newFeed = await repo.Feeds.Create(feed);
+                return (true, newFeed.Id);
+            }
+            else
+            {
+                var updatedFeed = await repo.Feeds.Modify(feed);
+                return (false, updatedFeed.Id);
+            }
         }
 
-        internal IHttpOctopusClient GetClient(string operation, string target)
+        public IOctopusAsyncClient GetClient(string operation, string target)
         {
             StartDependencyTracking(operation, target);
-            return Client;
+            return _client ?? (_client = GetClientAsync(operation, target).GetAwaiter().GetResult());
+        }
+        private async Task<IOctopusAsyncClient> GetClientAsync(string operation, string target)
+        {
+            StartDependencyTracking(operation, target);
+            return _client ?? (_client = await OctopusAsyncClient.Create(_endpoint.Value));
         }
 
         private void StartDependencyTracking(string operation, string target)
@@ -84,12 +95,16 @@ namespace OctopusDeployNuGetFeed.Octopus
             _logger.Verbose(operation + ": " + target);
         }
 
-        internal IOctopusRepository GetRepository(string operation, string target)
+        public IOctopusAsyncRepository GetRepository(string operation, string target)
         {
             StartDependencyTracking(operation, target);
-            return _repository ?? (_repository = new OctopusRepository(Client));
+            return _repository ?? (_repository = new OctopusAsyncRepository(GetClient(operation, target)));
         }
-
+        private async Task<IOctopusAsyncRepository> GetRepositoryAsync(string operation, string target)
+        {
+            StartDependencyTracking(operation, target);
+            return _repository ?? (_repository = new OctopusAsyncRepository(await GetClientAsync(operation, target)));
+        }
         public void ConfigureAppInsightsDependencyTracking()
         {
             _client.SendingOctopusRequest += ClientOnSendingOctopusRequest;

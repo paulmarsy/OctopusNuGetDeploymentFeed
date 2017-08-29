@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Octopus
@@ -33,26 +34,27 @@ namespace OctopusDeployNuGetFeed.Octopus
 
         public int RegisteredOctopusServers => _instances.Count;
 
-        public bool IsAuthenticated(OctopusCredential credential)
+        public async Task<bool> IsAuthenticated(OctopusCredential credential)
         {
-            return GetInstance(credential).IsAuthenticated;
-        }
+            var instance = GetInstance(credential) ?? await CreateOctopusInstance(credential);
+            return await instance.IsAuthenticated();
+        } 
 
         public IOctopusConnection GetConnection(OctopusCredential credential)
         {
-            return GetInstance(credential).Connection;
+            return (GetInstance(credential) ?? CreateOctopusInstance(credential).GetAwaiter().GetResult()).Connection;
         }
 
         public IOctopusServer GetServer(OctopusCredential credential)
         {
-            return GetInstance(credential).Server;
+            return (GetInstance(credential) ?? CreateOctopusInstance(credential).GetAwaiter().GetResult()).Server;
         }
 
         private void MetricTimerHandler(object state)
         {
             try
             {
-                foreach (var repo in _instances.Where(repo => repo.Value.Connection.IsAuthenticated))
+                foreach (var repo in _instances.Where(repo => repo.Value.Connection.IsAuthenticated().GetAwaiter().GetResult()))
                 {
                     _appInsights.TrackMetric("MemoryCache - Approximate Size", repo.Value.Server.CacheSize);
                     _appInsights.TrackMetric("MemoryCache - Server Entries", repo.Value.Server.CachedItems);
@@ -65,36 +67,30 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
         }
 
-
         private OctopusInstance GetInstance(OctopusCredential credential)
         {
             var host = credential.GetHost();
-            if (_instances.ContainsKey(host) && _instances[host].IsMatch(credential.BaseUri, credential.ApiKey))
-                return _instances[host];
-
             lock (_instances)
             {
-                return CreateOctopusInstance(credential);
+                if (_instances.ContainsKey(host) && _instances[host].IsMatch(credential.BaseUri, credential.ApiKey))
+                    return _instances[host];
+                return null;
             }
         }
 
-
-        private OctopusInstance CreateOctopusInstance(OctopusCredential credential)
+        private async Task<OctopusInstance> CreateOctopusInstance(OctopusCredential credential)
         {
             var host = credential.GetHost();
 
-            if (_instances.ContainsKey(host) && _instances[host].IsMatch(credential.BaseUri, credential.ApiKey))
-                return _instances[host];
-
             var connection = new OctopusConnection(_appInsights, _logger, credential.BaseUri, credential.ApiKey);
-
-            _logger.Verbose($"Creating Octopus API Connection: {connection.BaseUri}. IsAuthenticated: {connection.IsAuthenticated}");
+            var isAuthenticated = await connection.IsAuthenticated();
+            _logger.Verbose($"Creating Octopus API Connection: {connection.BaseUri}. IsAuthenticated: {isAuthenticated}");
             _appInsights.TrackEvent("CreateOctopusInstance", new Dictionary<string, string>
             {
                 {"BaseUri", connection.BaseUri},
-                {"IsAuthenticated", connection.IsAuthenticated.ToString()}
+                {"IsAuthenticated", isAuthenticated.ToString()}
             });
-            if (!connection.IsAuthenticated)
+            if (!isAuthenticated)
                 return null;
 
             connection.ConfigureAppInsightsDependencyTracking();
@@ -102,13 +98,15 @@ namespace OctopusDeployNuGetFeed.Octopus
             var server = new OctopusServer(connection, _logger);
 
             var instance = new OctopusInstance(connection, server);
-
-            if (_instances.ContainsKey(host))
+            lock (_instances)
             {
-                _instances[host].Dispose();
-                _instances.Remove(host);
+                if (_instances.ContainsKey(host))
+                {
+                    _instances[host].Dispose();
+                    _instances.Remove(host);
+                }
+                _instances[instance.Key] = instance;
             }
-            _instances[instance.Key] = instance;
 
             return instance;
         }
@@ -122,7 +120,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
 
             public string Key => new Uri(Connection.BaseUri).Host;
-            public bool IsAuthenticated => Connection.IsAuthenticated;
+            public async Task<bool> IsAuthenticated() => await Connection.IsAuthenticated();
             public OctopusConnection Connection { get; }
             public OctopusServer Server { get; }
 

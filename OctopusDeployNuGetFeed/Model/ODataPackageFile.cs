@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace OctopusDeployNuGetFeed.Model
 {
@@ -12,21 +13,22 @@ namespace OctopusDeployNuGetFeed.Model
         public string Version { get; set; }
 
         [DataMember]
-        public long PackageBlobSize { get; set; }
+        public int PackageBlobSize { get; set; }
 
         [DataMember]
         public byte[] PackageBlob { get; set; }
-
-        public static ODataPackageFile FromNuGetPackage(IDownloadableNuGetPackage package)
+        public static async Task<ODataPackageFile> FromNuGetPackage(IDownloadableNuGetPackage package)
         {
             if (package == null)
                 return null;
+
+            var blob = await package.GetPackageBlob();
             return new ODataPackageFile
             {
                 Id = package.Id,
                 Version = package.Version,
-                PackageBlobSize = package.BlobSize,
-                PackageBlob = package.GetBlob()
+                PackageBlobSize =blob.Length,
+                PackageBlob = blob
             };
         }
     }

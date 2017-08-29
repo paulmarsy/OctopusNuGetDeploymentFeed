@@ -39,6 +39,9 @@ namespace OctopusDeployNuGetFeed.Model
         [DataMember]
         public bool Listed { get; set; }
 
+        public static implicit operator ODataPackage(SearchPackage package) => FromNuGetPackage(package);
+        public static implicit operator ODataPackage(ProjectPackage package) => FromNuGetPackage(package);
+        public static implicit operator ODataPackage(ReleasePackage package) => FromNuGetPackage(package);
         public static ODataPackage FromNuGetPackage(INuGetPackage package)
         {
             if (package == null)

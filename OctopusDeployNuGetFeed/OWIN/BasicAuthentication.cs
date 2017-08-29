@@ -48,7 +48,7 @@ namespace OctopusDeployNuGetFeed.OWIN
                         var username = parameter.Substring(0, lastColonIndex).Trim();
                         var password = parameter.Substring(lastColonIndex + 1).Trim();
 
-                        if (ValidateUser(username, password))
+                        if (await ValidateUser(username, password))
                             SetClaimsIdentity(request, username, password);
                     }
                 }
@@ -70,12 +70,12 @@ namespace OctopusDeployNuGetFeed.OWIN
             request.User = new ClaimsPrincipal(id);
         }
 
-        protected virtual bool ValidateUser(string username, string password)
+        private async Task<bool> ValidateUser(string username, string password)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
                 return false;
 
-            return _octopusClientFactory.IsAuthenticated(new OctopusCredential(username, password));
+            return await _octopusClientFactory.IsAuthenticated(new OctopusCredential(username, password));
         }
     }
 }

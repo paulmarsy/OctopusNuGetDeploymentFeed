@@ -27,7 +27,6 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository.Remote
             return GetProxy(projectName).FindLatestReleaseAsync(projectName);
         }
 
-
         public Task<ODataPackageFile> GetPackageAsync(string projectName, string version)
         {
             return GetProxy(projectName).GetPackageAsync(projectName, version);

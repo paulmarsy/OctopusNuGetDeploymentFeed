@@ -45,8 +45,6 @@ namespace OctopusDeployNuGetFeed.Controllers
                 return BadRequest();
 
             var package = await ReleaseRepository.GetReleaseAsync(id, version);
-            if (package == null)
-                return NotFound();
 
             return TransformToSingleResult(options, package);
         }
@@ -71,13 +69,13 @@ namespace OctopusDeployNuGetFeed.Controllers
         [GzipCompressed]
         public async Task<IHttpActionResult> Search(ODataQueryOptions<ODataPackage> options, [FromODataUri] string searchTerm, CancellationToken token)
         {
-            var latestRelease = await ReleaseRepository.FindLatestReleaseAsync(searchTerm);
-            if (latestRelease != null)
-                return TransformToSingleResult(options, latestRelease);
+            if (await ProjectRepository.ExistsAsync(searchTerm))
+                return TransformToSingleResult(options, await ReleaseRepository.FindLatestReleaseAsync(searchTerm));
 
-            var projectSearch = (await ProjectRepository.GetAllProjectsAsync()).Where(project => project.Listed && project.Title.WildcardMatch($"*{searchTerm}*"));
+            var projectList = await ProjectRepository.GetAllProjectsAsync();
+            var searchResult = projectList.Where(project => project.Listed && project.Title.WildcardMatch($"*{searchTerm}*"));
 
-            return TransformToQueryResult(options, projectSearch);
+            return TransformToQueryResult(options, searchResult);
         }
 
         // Exposed as OData Action for specific entity GET/HEAD /Packages(Id=,Version=)/Download
@@ -118,6 +116,9 @@ namespace OctopusDeployNuGetFeed.Controllers
 
         private IHttpActionResult TransformToSingleResult(ODataQueryOptions<ODataPackage> options, ODataPackage source)
         {
+            if (source == null)
+                return NotFound();
+
             return new QueryResult<ODataPackage>(options, source.AsEnumerable().AsQueryable(), this, 1);
         }
     }

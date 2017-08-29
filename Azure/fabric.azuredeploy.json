@@ -1,0 +1,203 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string"
+        },
+        "virtualMachineInstances": {
+            "type": "int",
+            "defaultValue": 2
+        },
+        "virtualMachineSize": {
+            "type": "string",
+            "defaultValue": "Standard_A1_v2"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "securestring"
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "virtualNetworkSubnetName": {
+            "type": "string"
+        },
+        "customDeployScript": {
+            "type": "string"
+        },
+        "customDownloadUri": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "virtualMachinePrefix": "[parameters('namePrefix')]",
+        "networkInterfaceName": "[concat(parameters('namePrefix'), '-NIC')]",
+        "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
+        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+        "loadBalancerName": "[concat(parameters('namePrefix'), 'LoadBalancer')]",
+        "fabricHttpGatewayPort": "19080",
+        "vmNodeTypeName": "OctopusNuGetFeed"
+    },
+    "resources": [{
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "name": "common",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templateRootUri'), 'common.json')]"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    }
+                }
+            }
+        }, {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "name": "loadBalancer",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templateRootUri'), 'internalLoadBalancer.json')]"
+                },
+                "parameters": {
+                    "loadBalancerName": {
+                        "value": "[variables('loadBalancerName')]"
+                    },
+                    "subnetId": {
+                        "value": "[variables('subnetRef')]"
+                    }
+                }
+            }
+        }, {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[parameters('namePrefix')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2017-03-30",
+            "dependsOn": [
+                "Microsoft.Resources/deployments/common",
+                "Microsoft.Resources/deployments/loadBalancer"
+            ],
+            "sku": {
+                "name": "[parameters('virtualMachineSize')]",
+                "capacity": "[parameters('virtualMachineInstances')]"
+            },
+            "properties": {
+                "overprovision": "true",
+                "upgradePolicy": {
+                    "mode": "Manual"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "imageReference": {
+                            "publisher": "MicrosoftWindowsServer",
+                            "offer": "WindowsServer",
+                            "sku": "2016-Datacenter-Server-Core-smalldisk",
+                            "version": "latest"
+                        },
+                        "osDisk": {
+                            "createOption": "FromImage",
+                            "caching": "ReadWrite",
+                            "managedDisk": {
+                                "storageAccountType": "Standard_LRS"
+                            }
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('virtualMachinePrefix')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "windowsConfiguration": {
+                            "enableAutomaticUpdates": true,
+                            "provisionVMAgent": true
+                        }
+                    },
+                    "extensionProfile": {
+                        "extensions": [{
+                            "name": "[concat(variables('vmNodeTypeName'),'_ServiceFabricNode')]",
+                            "properties": {
+                                "type": "ServiceFabricNode",
+                                "autoUpgradeMinorVersion": true,
+                                "publisher": "Microsoft.Azure.ServiceFabric",
+                                "settings": {
+                                    "clusterEndpoint": "[reference(parameters('namePrefix')).clusterEndpoint]",
+                                    "nodeTypeRef": "[variables('vmNodeTypeName')]",
+                                    "dataPath": "D:\\\\SvcFab",
+                                    "durabilityLevel": "Bronze"
+                                },
+                                "typeHandlerVersion": "1.0"
+                            }
+                        }]
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [{
+                            "name": "[variables('networkInterfaceName')]",
+                            "properties": {
+                                "primary": true,
+                                "ipConfigurations": [{
+                                    "name": "[concat(variables('virtualMachinePrefix'), '-IPConfig')]",
+                                    "properties": {
+                                        "subnet": {
+                                            "id": "[variables('subnetRef')]"
+                                        },
+                                        "loadBalancerBackendAddressPools": [{
+                                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                                        }]
+                                    }
+                                }]
+                            }
+                        }]
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2016-09-01",
+            "type": "Microsoft.ServiceFabric/clusters",
+            "name": "[parameters('namePrefix')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "clientCertificateCommonNames": [],
+                "clientCertificateThumbprints": [],
+                "clusterState": "Default",
+                "fabricSettings": [],
+                "managementEndpoint": "[concat('https://',reference(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
+                "nodeTypes": [{
+                    "name": "[variables('vmNodeTypeName')]",
+                    "applicationPorts": {
+                        "endPort": "30000",
+                        "startPort": "20000"
+                    },
+                    "clientConnectionEndpointPort": "19000",
+                    "durabilityLevel": "Bronze",
+                    "ephemeralPorts": {
+                        "endPort": "65534",
+                        "startPort": "49152"
+                    },
+                    "httpGatewayEndpointPort": "[variables('fabricHttpGatewayPort')]",
+                    "isPrimary": true,
+                    "vmInstanceCount": "[parameters('virtualMachineInstances')]"
+                }],
+                "provisioningState": "Default",
+                "reliabilityLevel": "Silver",
+                "upgradeMode": "Automatic",
+                "vmImage": "Windows"
+            }
+        }
+    ],
+    "outputs": {
+        "ipAddress": {
+            "type": "string",
+            "value": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value]"
+        }
+    }
+}

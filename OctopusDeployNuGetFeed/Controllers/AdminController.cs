@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Web.Http;
 using OctopusDeployNuGetFeed.Octopus;
 
@@ -15,9 +16,9 @@ namespace OctopusDeployNuGetFeed.Controllers
         }
 
         [HttpGet]
-        public IHttpActionResult RegisterFeed()
+        public async Task<IHttpActionResult> RegisterFeed()
         {
-            var result = _octopusClientFactory.GetConnection(OctopusCredential.FromPrincipal(User)).RegisterNuGetFeed(Request.RequestUri.Host);
+            var result = await _octopusClientFactory.GetConnection(OctopusCredential.FromPrincipal(User)).RegisterNuGetFeed(Request.RequestUri.Host);
             return Ok(new
             {
                 action = result.created ? "Created" : "Updated",
@@ -28,7 +29,7 @@ namespace OctopusDeployNuGetFeed.Controllers
         [HttpGet]
         public IHttpActionResult Stats()
         {
-            var cache = _octopusClientFactory.GetServer(OctopusCredential.FromPrincipal(User));
+            var cache =  _octopusClientFactory.GetServer(OctopusCredential.FromPrincipal(User));
 
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
 

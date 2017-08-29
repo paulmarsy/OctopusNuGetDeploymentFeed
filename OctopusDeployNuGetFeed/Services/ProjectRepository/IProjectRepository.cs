@@ -8,5 +8,6 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository
     public interface IProjectRepository : IService
     {
         Task<IEnumerable<ODataPackage>> GetAllProjectsAsync();
+        Task<bool> ExistsAsync(string projectName);
     }
 }

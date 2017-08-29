@@ -21,5 +21,10 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Remote
         {
             return GetProxy(ServiceName).GetAllProjectsAsync();
         }
+
+        public Task<bool> ExistsAsync(string projectName)
+        {
+            return GetProxy(ServiceName).ExistsAsync(projectName);
+        }
     }
 }

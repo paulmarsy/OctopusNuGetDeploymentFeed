@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Octopus.Client.Model;
 using OctopusDeployNuGetFeed.Model;
 using OctopusDeployNuGetFeed.Octopus;
 
@@ -17,74 +19,69 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository
             _server = server;
         }
 
-        public Task<IEnumerable<ODataPackage>> GetAllReleasesAsync(string projectName)
+        public async Task<IEnumerable<ODataPackage>> GetAllReleasesAsync(string projectName)
         {
-            return Task.FromResult(GetAllReleases(projectName).Select(ODataPackage.FromNuGetPackage));
+            var project = await GetProject(projectName);
+            if (!project.exists)
+                return Enumerable.Empty<ODataPackage>();
+
+            var releases = await _server.GetAllReleasesAsync(project.value);
+
+            return GetAllReleases(project.value, releases);
         }
 
-        public Task<ODataPackage> FindLatestReleaseAsync(string projectName)
+        private static IEnumerable<ODataPackage> GetAllReleases(ProjectResource project, IEnumerable<ReleaseResource> releases)
         {
-            return Task.FromResult(ODataPackage.FromNuGetPackage(FindLatestRelease(projectName)));
-        }
-
-        public Task<ODataPackage> GetReleaseAsync(string projectName, string version)
-        {
-            return Task.FromResult(ODataPackage.FromNuGetPackage(GetRelease(projectName, version)));
-        }
-
-        public Task<ODataPackageFile> GetPackageAsync(string projectName, string version)
-        {
-            return Task.FromResult(ODataPackageFile.FromNuGetPackage(GetRelease(projectName, version)));
-        }
-
-        private IDownloadableNuGetPackage GetRelease(string projectName, string version)
-        {
-            var semver = version.ToSemanticVersion();
-            if (semver == null)
-                return null;
-
-            var project = _server.GetProject(projectName);
-            if (project == null)
-                return null;
-
-            _server.InitialisePreloader(project);
-
-            var release = _server.GetRelease(project, semver);
-            if (release == null)
-                return null;
-
-            var channel = _server.GetChannel(release.ChannelId);
-            if (channel == null)
-                return null;
-
-            return new ReleasePackage(_connection, _server, project, release, channel);
-        }
-
-        private IEnumerable<INuGetPackage> GetAllReleases(string projectName)
-        {
-            var project = _server.GetProject(projectName);
-            if (project == null)
-                yield break;
-
-            _server.InitialisePreloader(project);
-
             var isLatest = true;
-            foreach (var release in _server.ListReleases(project))
+            foreach (var release in releases)
             {
                 yield return new ProjectPackage(project, release, isLatest);
                 isLatest = false;
             }
         }
 
-        private INuGetPackage FindLatestRelease(string projectName)
+        public async Task<ODataPackage> FindLatestReleaseAsync(string projectName)
         {
-            var project = _server.TryGetProject(projectName);
-            if (project == null)
+            var project = await GetProject(projectName);
+            if (!project.exists)
                 return null;
+
+            return new ProjectPackage(project.value, await _server.GetLatestReleaseAsync(project.value), true);
+        }
+
+        public async Task<ODataPackage> GetReleaseAsync(string projectName, string version) => await GetReleaseImpl(projectName, version);
+        private async Task<ReleasePackage> GetReleaseImpl(string projectName, string version)
+        {
+            var semver = version.ToSemanticVersion();
+            if (semver == null)
+                return null;
+
+            var project = await GetProject(projectName);
+            if (!project.exists)
+                return null;
+
+            var release = await _server.GetReleaseAsync(project.value, semver);
+            if (release == null)
+                return null;
+
+            var channel = await _server.GetChannelAsync(release.ChannelId);
+            if (channel == null)
+                return null;
+
+            return new ReleasePackage(_connection, _server, project.value, release, channel);
+        }
+
+        public async Task<ODataPackageFile> GetPackageAsync(string projectName, string version) => await ODataPackageFile.FromNuGetPackage(await GetReleaseImpl(projectName, version));
+
+        private async Task<(bool exists, ProjectResource value)> GetProject(string projectName)
+        {
+            var project = await _server.GetProjectAsync(projectName);
+            if (project == null)
+                return (false, null);
 
             _server.InitialisePreloader(project);
 
-            return new ProjectPackage(project, _server.GetLatestRelease(project), true);
+            return (true, project);
         }
     }
 }

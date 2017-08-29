@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Fabric;
+using System.Threading;
 using System.Threading.Tasks;
 using OctopusDeployNuGetFeed.Model;
 using OctopusDeployNuGetFeed.Octopus;
@@ -21,6 +23,11 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
         public Task<IEnumerable<ODataPackage>> GetAllProjectsAsync()
         {
             return _factory.GetProjectRepository(ContextObject).GetAllProjectsAsync();
+        }
+
+        public Task<bool> ExistsAsync(string projectName)
+        {
+            return _factory.GetProjectRepository(ContextObject).ExistsAsync(projectName);
         }
     }
 }

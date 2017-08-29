@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NuGet;
 using Octopus.Client.Model;
@@ -21,7 +22,7 @@ namespace OctopusDeployNuGetFeed.Model
         private static readonly string DeployConfig;
 
         private static readonly UTF8Encoding UTF8Encoding = new UTF8Encoding(false);
-        private readonly Lazy<byte[]> _nugetPackage;
+        private readonly Lazy<Task<byte[]>> _nugetPackage;
 
         static ReleasePackage()
         {
@@ -35,7 +36,7 @@ namespace OctopusDeployNuGetFeed.Model
             Connection = connection;
             Server = octopusServer;
             Channel = channel;
-            _nugetPackage = new Lazy<byte[]>(() => Server.GetNuGetPackage(project, release, CreateNuGetPackage));
+            _nugetPackage = new Lazy<Task<byte[]>>(async () => await Server.GetNuGetPackageAsync(project, release, CreateNuGetPackage));
         }
 
         private string SemanticPackageId => PackageIdValidator.IsValidPackageId(Id) ? Id : $"{Project.ProjectGroupId}.{Project.Id}".Replace('-', '.');
@@ -53,13 +54,11 @@ namespace OctopusDeployNuGetFeed.Model
                                               GetDescriptionReleaseNotes() +
                                               GetDescriptionSelectedPackages();
 
-        public byte[] GetBlob()
+        public async Task<byte[]> GetPackageBlob()
         {
-            return _nugetPackage.Value;
+            return await _nugetPackage.Value;
         }
-
-        public long BlobSize => _nugetPackage.Value.Length;
-
+        
         private string GetDescriptionReleaseNotes()
         {
             return string.IsNullOrWhiteSpace(Release.ReleaseNotes)
@@ -93,7 +92,7 @@ namespace OctopusDeployNuGetFeed.Model
             }
         }
 
-        private byte[] CreateNuGetPackage()
+        private async Task<byte[]> CreateNuGetPackage()
         {
             using (var memoryStream = new MemoryStream())
             {
@@ -111,9 +110,9 @@ namespace OctopusDeployNuGetFeed.Model
                     AddPackageFile(zipArchive, "deploy.ps1", DeployPs1);
                     AddPackageFile(zipArchive, "deploy.config", DeployConfig);
                     AddPackageFile(zipArchive, "connection.json", JsonConvert.SerializeObject(Connection, Formatting.Indented));
-                    AddPackageFile(zipArchive, "project.json", Server.GetJson(Project));
-                    AddPackageFile(zipArchive, "channel.json", Server.GetJson(Channel));
-                    AddPackageFile(zipArchive, "release.json", Server.GetJson(Release));
+                    AddPackageFile(zipArchive, "project.json", await Server.GetJsonAsync(Project));
+                    AddPackageFile(zipArchive, "channel.json", await Server.GetJsonAsync(Channel));
+                    AddPackageFile(zipArchive, "release.json", await Server.GetJsonAsync(Release));
                 }
 
                 return memoryStream.ToArray();

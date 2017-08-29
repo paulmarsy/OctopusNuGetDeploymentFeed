@@ -18,12 +18,12 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository
 
         public Task<IEnumerable<ODataPackage>> GetAllProjectsAsync()
         {
-            return Task.FromResult(GetAllProjects().Select(ODataPackage.FromNuGetPackage));
+            return Task.FromResult(_server.GetAllProjects().Select(project => new SearchPackage(project)).Select(ODataPackage.FromNuGetPackage));
         }
 
-        private IEnumerable<INuGetPackage> GetAllProjects()
+        public Task<bool> ExistsAsync(string projectName)
         {
-            return _server.GetAllProjects().Select(project => new SearchPackage(project));
+            return Task.FromResult(_server.ProjectExists(projectName));
         }
     }
 }
