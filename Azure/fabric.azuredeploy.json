@@ -80,7 +80,7 @@
             }
         }, {
             "type": "Microsoft.Compute/virtualMachineScaleSets",
-            "name": "[parameters('namePrefix')]",
+            "name": "[variables('vmNodeTypeName')]",
             "location": "[resourceGroup().location]",
             "apiVersion": "2017-03-30",
             "dependsOn": [
