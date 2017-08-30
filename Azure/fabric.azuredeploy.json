@@ -165,6 +165,10 @@
             "type": "Microsoft.ServiceFabric/clusters",
             "name": "[parameters('namePrefix')]",
             "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "Microsoft.Resources/deployments/common",
+                "Microsoft.Resources/deployments/loadBalancer"
+            ],
             "properties": {
                 "clientCertificateCommonNames": [],
                 "clientCertificateThumbprints": [],
