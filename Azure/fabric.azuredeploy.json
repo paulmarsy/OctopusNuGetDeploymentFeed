@@ -170,7 +170,7 @@
                 "clientCertificateThumbprints": [],
                 "clusterState": "Default",
                 "fabricSettings": [],
-                "managementEndpoint": "[concat('https://',reference(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
+                "managementEndpoint": "[concat('https://',reference(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), providers('Microsoft.Network', 'loadBalancers').apiVersions[0]).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
                     "name": "[variables('vmNodeTypeName')]",
                     "applicationPorts": {
