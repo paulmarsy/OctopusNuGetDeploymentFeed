@@ -84,7 +84,7 @@
             "location": "[resourceGroup().location]",
             "apiVersion": "2017-03-30",
             "dependsOn": [
-                "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
+                "[resourceId('Microsoft.Resources/deployments', 'loadBalancer')]"
             ],
             "sku": {
                 "name": "[parameters('virtualMachineSize')]",
