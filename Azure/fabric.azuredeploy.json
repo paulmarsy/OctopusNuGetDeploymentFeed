@@ -84,9 +84,7 @@
             "location": "[resourceGroup().location]",
             "apiVersion": "2017-03-30",
             "dependsOn": [
-                "Microsoft.Resources/deployments/common",
-                "Microsoft.Resources/deployments/loadBalancer",
-                "[concat('Microsoft.ServiceFabric/clusters/', parameters('namePrefix'))]"
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
             ],
             "sku": {
                 "name": "[parameters('virtualMachineSize')]",
@@ -167,33 +165,27 @@
             "name": "[parameters('namePrefix')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "Microsoft.Resources/deployments/common",
-                "Microsoft.Resources/deployments/loadBalancer"
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
             ],
             "properties": {
-                "clientCertificateCommonNames": [],
-                "clientCertificateThumbprints": [],
                 "clusterState": "Default",
-                "fabricSettings": [],
                 "managementEndpoint": "[concat('https://',reference(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), providers('Microsoft.Network', 'loadBalancers').apiVersions[0]).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
                     "name": "[variables('vmNodeTypeName')]",
                     "applicationPorts": {
-                        "endPort": "30000",
-                        "startPort": "20000"
+                        "endPort": 30000,
+                        "startPort": 20000
                     },
-                    "clientConnectionEndpointPort": "19000",
+                    "clientConnectionEndpointPort": 19000,
                     "durabilityLevel": "Bronze",
                     "ephemeralPorts": {
-                        "endPort": "65534",
-                        "startPort": "49152"
+                        "endPort": 65534,
+                        "startPort": 49152
                     },
                     "httpGatewayEndpointPort": "[variables('fabricHttpGatewayPort')]",
                     "isPrimary": true,
                     "vmInstanceCount": "[parameters('virtualMachineInstances')]"
                 }],
-                "provisioningState": "Default",
-                "reliabilityLevel": "Silver",
                 "upgradeMode": "Automatic",
                 "vmImage": "Windows"
             }
