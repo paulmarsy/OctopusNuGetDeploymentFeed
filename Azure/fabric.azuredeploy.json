@@ -83,9 +83,6 @@
             "name": "[variables('vmNodeTypeName')]",
             "location": "[resourceGroup().location]",
             "apiVersion": "2017-03-30",
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'loadBalancer')]"
-            ],
             "sku": {
                 "name": "[parameters('virtualMachineSize')]",
                 "capacity": "[parameters('virtualMachineInstances')]"
