@@ -85,7 +85,8 @@
             "apiVersion": "2017-03-30",
             "dependsOn": [
                 "Microsoft.Resources/deployments/common",
-                "Microsoft.Resources/deployments/loadBalancer"
+                "Microsoft.Resources/deployments/loadBalancer",
+                "[concat('Microsoft.ServiceFabric/clusters/', parameters('namePrefix'))]"
             ],
             "sku": {
                 "name": "[parameters('virtualMachineSize')]",
@@ -150,7 +151,7 @@
                                             "id": "[variables('subnetRef')]"
                                         },
                                         "loadBalancerBackendAddressPools": [{
-                                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
                                         }]
                                     }
                                 }]
@@ -174,7 +175,7 @@
                 "clientCertificateThumbprints": [],
                 "clusterState": "Default",
                 "fabricSettings": [],
-                "managementEndpoint": "[concat('https://',reference(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), providers('Microsoft.Network', 'loadBalancers').apiVersions[0]).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
+                "managementEndpoint": "[concat('https://',reference(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), providers('Microsoft.Network', 'loadBalancers').apiVersions[0]).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
                     "name": "[variables('vmNodeTypeName')]",
                     "applicationPorts": {
