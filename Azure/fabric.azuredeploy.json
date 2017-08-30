@@ -84,7 +84,7 @@
             "location": "[resourceGroup().location]",
             "apiVersion": "2017-03-30",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
+                "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
             ],
             "sku": {
                 "name": "[parameters('virtualMachineSize')]",
@@ -165,7 +165,7 @@
             "name": "[parameters('namePrefix')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
+                "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
             ],
             "properties": {
                 "clusterState": "Default",
