@@ -164,12 +164,9 @@
             "type": "Microsoft.ServiceFabric/clusters",
             "name": "[parameters('namePrefix')]",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
-            ],
             "properties": {
                 "clusterState": "Default",
-                "managementEndpoint": "[concat('https://',reference(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), providers('Microsoft.Network', 'loadBalancers').apiVersions[0]).frontEndIPConfigurations[0].properties.privateIPAddress,':',variables('fabricHttpGatewayPort'))]",
+                "managementEndpoint": "[concat('https://',reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
                     "name": "[variables('vmNodeTypeName')]",
                     "applicationPorts": {
