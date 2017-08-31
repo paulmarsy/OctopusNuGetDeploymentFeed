@@ -2,16 +2,27 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "loadBalancerName": {
+        "name": {
             "type": "string"
         },
-        "subnetId": {
+        "virtualNetworkResourceGroupName": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "virtualNetworkSubnetName": {
             "type": "string"
         }
     },
+    "variables": {
+        "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
+        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+    },
     "resources": [{
         "apiVersion": "2016-03-30",
-        "name": "[parameters('loadBalancerName')]",
+        "name": "[variables('loadBalancerName')]",
         "type": "Microsoft.Network/loadBalancers",
         "location": "[resourceGroup().location]",
         "properties": {
@@ -20,7 +31,7 @@
                 "properties": {
                     "privateIPAllocationMethod": "Dynamic",
                     "subnet": {
-                        "id": "[parameters('subnetId')]"
+                        "id": "[variables('subnetRef')]"
                     }
                 }
             }],
@@ -30,13 +41,13 @@
             "loadBalancingRules": [{
                 "properties": {
                     "frontendIPConfiguration": {
-                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
                     },
                     "backendAddressPool": {
-                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/backendAddressPools/Backend')]"
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
                     },
                     "probe": {
-                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/probes/HttpProbe')]"
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/HttpProbe')]"
                     },
                     "protocol": "Tcp",
                     "frontendPort": 80,
@@ -59,7 +70,7 @@
     "outputs": {
         "ipAddress": {
             "type": "string",
-            "value": "[reference(parameters('loadBalancerName')).frontendIPConfigurations[0].properties.privateIPAddress]"
+            "value": "[reference(variables('loadBalancerName')).frontendIPConfigurations[0].properties.privateIPAddress]"
         }
     }
 }

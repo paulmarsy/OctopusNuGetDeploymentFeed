@@ -2,7 +2,7 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "namePrefix": {
+        "name": {
             "type": "string"
         },
         "virtualMachineInstances": {
@@ -49,12 +49,12 @@
         }
     },
     "variables": {
-        "virtualMachinePrefix": "[parameters('namePrefix')]",
-        "networkInterfaceName": "[concat(parameters('namePrefix'), '-NIC')]",
+        "virtualMachinePrefix": "[parameters('name')]",
+        "networkInterfaceName": "[concat(parameters('name'), '-NIC')]",
         "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
         "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
-        "loadBalancerName": "[concat(parameters('namePrefix'), 'LoadBalancer')]",
+        "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
         "fabricTcpGatewayPort": "19000",
         "fabricHttpGatewayPort": "19080",
         "vmNodeTypeName": "OctopusNuGetFeed"
@@ -69,8 +69,8 @@
                     "uri": "[concat(variables('templateRootUri'), 'common.json')]"
                 },
                 "parameters": {
-                    "namePrefix": {
-                        "value": "[parameters('namePrefix')]"
+                    "name": {
+                        "value": "[parameters('name')]"
                     }
                 }
             }
@@ -84,11 +84,17 @@
                     "uri": "[concat(variables('templateRootUri'), parameters('type'), 'LoadBalancer.json')]"
                 },
                 "parameters": {
-                    "loadBalancerName": {
-                        "value": "[variables('loadBalancerName')]"
+                    "name": {
+                        "value": "[parameters('name')]"
                     },
-                    "subnetId": {
-                        "value": "[variables('subnetRef')]"
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('virtualNetworkResourceGroupName')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[parameters('virtualNetworkName')]"
+                    },
+                    "virtualNetworkSubnetName": {
+                        "value": "[parameters('virtualNetworkSubnetName')]"
                     }
                 }
             }
@@ -123,7 +129,7 @@
                         }
                     },
                     "osProfile": {
-                        "computerNamePrefix": "[variables('virtualMachinePrefix')]",
+                        "computername": "[variables('virtualMachinePrefix')]",
                         "adminUsername": "[parameters('adminUsername')]",
                         "adminPassword": "[parameters('adminPassword')]",
                         "windowsConfiguration": {
@@ -148,7 +154,7 @@
                                 "autoUpgradeMinorVersion": true,
                                 "publisher": "Microsoft.Azure.ServiceFabric",
                                 "settings": {
-                                    "clusterEndpoint": "[reference(parameters('namePrefix')).clusterEndpoint]",
+                                    "clusterEndpoint": "[reference(parameters('name')).clusterEndpoint]",
                                     "nodeTypeRef": "[variables('vmNodeTypeName')]",
                                     "dataPath": "D:\\\\SvcFab",
                                     "durabilityLevel": "Bronze",
@@ -186,7 +192,7 @@
         {
             "apiVersion": "2016-09-01",
             "type": "Microsoft.ServiceFabric/clusters",
-            "name": "[parameters('namePrefix')]",
+            "name": "[parameters('name')]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "certificate": {
