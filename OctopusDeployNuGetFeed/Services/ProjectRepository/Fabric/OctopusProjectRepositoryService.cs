@@ -13,6 +13,7 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
     {
         private readonly IProjectRepositoryFactory _factory;
 
+
         public OctopusProjectRepositoryService(StatefulServiceContext serviceContext, string replicatorSettingsSectionName, IProjectRepositoryFactory factory) : base(serviceContext, replicatorSettingsSectionName)
         {
             _factory = factory;

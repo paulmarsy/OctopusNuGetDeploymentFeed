@@ -49,6 +49,7 @@
         }
     },
     "variables": {
+        "fabricClusterName":"[concat(parameters('name'), 'Cluster')]",
         "virtualMachinePrefix": "[parameters('name')]",
         "networkInterfaceName": "[concat(parameters('name'), '-NIC')]",
         "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
@@ -106,7 +107,7 @@
                 "capacity": "[parameters('virtualMachineInstances')]"
             },
             "properties": {
-                "overprovision": "true",
+                "overprovision": false,
                 "upgradePolicy": {
                     "mode": "Automatic"
                 },
@@ -152,10 +153,11 @@
                                 "autoUpgradeMinorVersion": true,
                                 "publisher": "Microsoft.Azure.ServiceFabric",
                                 "settings": {
-                                    "clusterEndpoint": "[reference(parameters('name')).clusterEndpoint]",
+                                    "clusterEndpoint": "[reference(variables('fabricClusterName')).clusterEndpoint]",
                                     "nodeTypeRef": "[variables('vmNodeTypeName')]",
                                     "dataPath": "D:\\\\SvcFab",
                                     "durabilityLevel": "Bronze",
+                                    "nicPrefixOverride": "10.0.0.0/24",
                                     "certificate": {
                                         "thumbprint": "[parameters('certificateThumbprint')]",
                                         "x509StoreName": "My"
@@ -177,10 +179,10 @@
                                             "id": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.subnetRef.value]"
                                         },
                                         "loadBalancerBackendAddressPools": [{
-                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                                            "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'), 'backendAddressPools', 'Backend')]"
                                         }],
                                         "loadBalancerInboundNatPools": [{
-                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/RDP')]"
+                                            "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'), 'inboundNatPools', 'RDP')]"
                                         }]
                                     }
                                 }]
@@ -193,7 +195,7 @@
         {
             "apiVersion": "2016-09-01",
             "type": "Microsoft.ServiceFabric/clusters",
-            "name": "[parameters('name')]",
+            "name": "[variables('fabricClusterName')]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "certificate": {
