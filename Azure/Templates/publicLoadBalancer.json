@@ -49,7 +49,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[parameters('name')]"
+                    "domainNameLabel": "[toLower(parameters('name'))]"
                 }
             }
         },
@@ -65,7 +65,9 @@
                 "frontendIPConfigurations": [{
                     "name": "Frontend",
                     "properties": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpName'))]"
+                        "publicIPAddress": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpName'))]"
+                        }
                     }
                 }],
                 "backendAddressPools": [{
