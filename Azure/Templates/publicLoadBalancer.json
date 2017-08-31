@@ -157,7 +157,7 @@
     "outputs": {
         "ipAddress": {
             "type": "string",
-            "value": "[reference(variables('loadBalancerName')).dnsSettings.fqdn]"
+            "value": "[reference(variables('publicIPName')).dnsSettings.fqdn]"
         }
     }
 }
