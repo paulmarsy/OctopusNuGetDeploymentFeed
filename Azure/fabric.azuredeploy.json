@@ -19,6 +19,13 @@
         "adminPassword": {
             "type": "securestring"
         },
+        "type": {
+            "type": "string",
+            "allowedValues": [
+                "public",
+                "internal"
+            ]
+        },
         "virtualNetworkResourceGroupName": {
             "type": "string"
         },
@@ -31,7 +38,13 @@
         "customDeployScript": {
             "type": "string"
         },
-        "customDownloadUri": {
+        "keyVaultResourceId": {
+            "type": "string"
+        },
+        "certificateUrl": {
+            "type": "string"
+        },
+        "certificateThumbprint": {
             "type": "string"
         }
     },
@@ -42,6 +55,7 @@
         "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
         "loadBalancerName": "[concat(parameters('namePrefix'), 'LoadBalancer')]",
+        "fabricTcpGatewayPort": "19000",
         "fabricHttpGatewayPort": "19080",
         "vmNodeTypeName": "OctopusNuGetFeed"
     },
@@ -67,7 +81,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[concat(variables('templateRootUri'), 'internalLoadBalancer.json')]"
+                    "uri": "[concat(variables('templateRootUri'), parameters('type'), 'LoadBalancer.json')]"
                 },
                 "parameters": {
                     "loadBalancerName": {
@@ -115,7 +129,16 @@
                         "windowsConfiguration": {
                             "enableAutomaticUpdates": true,
                             "provisionVMAgent": true
-                        }
+                        },
+                        "secrets": [{
+                            "sourceVault": {
+                                "id": "[parameters('keyVaultResourceId')]"
+                            },
+                            "vaultCertificates": [{
+                                "certificateStore": "My",
+                                "certificateUrl": "[parameters('certificateUrl')]"
+                            }]
+                        }]
                     },
                     "extensionProfile": {
                         "extensions": [{
@@ -128,7 +151,11 @@
                                     "clusterEndpoint": "[reference(parameters('namePrefix')).clusterEndpoint]",
                                     "nodeTypeRef": "[variables('vmNodeTypeName')]",
                                     "dataPath": "D:\\\\SvcFab",
-                                    "durabilityLevel": "Bronze"
+                                    "durabilityLevel": "Bronze",
+                                    "certificate": {
+                                        "thumbprint": "[parameters('certificateThumbprint')]",
+                                        "x509StoreName": "My"
+                                    }
                                 },
                                 "typeHandlerVersion": "1.0"
                             }
@@ -162,6 +189,10 @@
             "name": "[parameters('namePrefix')]",
             "location": "[resourceGroup().location]",
             "properties": {
+                "certificate": {
+                    "thumbprint": "[parameters('certificateThumbprint')]",
+                    "x509StoreName": "My"
+                },
                 "clusterState": "Default",
                 "managementEndpoint": "[concat('https://',reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
@@ -170,7 +201,7 @@
                         "endPort": 30000,
                         "startPort": 20000
                     },
-                    "clientConnectionEndpointPort": 19000,
+                    "clientConnectionEndpointPort": "[variables('fabricTcpGatewayPort')]",
                     "durabilityLevel": "Bronze",
                     "ephemeralPorts": {
                         "endPort": 65534,
