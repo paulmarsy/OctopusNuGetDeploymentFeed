@@ -18,8 +18,6 @@
     "variables": {
         "publicIpName": "[concat(parameters('name'), 'PIP')]",
         "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
-        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
         "fabricHttpGatewayPort": "19080",
         "fabricTcpGatewayPort": "19000",
         "addressPrefix": "10.0.0.0/16",
@@ -74,7 +72,7 @@
                     "name": "Backend"
                 }],
                 "loadBalancingRules": [{
-                    "Name": "HTTP",
+                    "name": "HTTP",
                     "properties": {
                         "frontendIPConfiguration": {
                             "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"

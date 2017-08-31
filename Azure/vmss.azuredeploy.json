@@ -113,7 +113,7 @@
                     }
                 },
                 "osProfile": {
-                    "computername": "[variables('virtualMachinePrefix')]",
+                    "computerNamePrefix": "[variables('virtualMachinePrefix')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "windowsConfiguration": {

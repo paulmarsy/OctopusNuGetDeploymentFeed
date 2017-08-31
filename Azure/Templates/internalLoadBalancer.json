@@ -18,7 +18,7 @@
     "variables": {
         "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
         "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]"
     },
     "resources": [{
         "apiVersion": "2016-03-30",
@@ -53,7 +53,7 @@
                     "frontendPort": 80,
                     "backendPort": 80
                 },
-                "Name": "HTTP"
+                "name": "HTTP"
             }],
             "probes": [{
                 "name": "HttpProbe",
