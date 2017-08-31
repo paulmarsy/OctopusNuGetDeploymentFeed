@@ -179,10 +179,10 @@
                                             "id": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.subnetRef.value]"
                                         },
                                         "loadBalancerBackendAddressPools": [{
-                                            "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'), 'backendAddressPools', 'Backend')]"
+                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
                                         }],
                                         "loadBalancerInboundNatPools": [{
-                                            "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName'), 'inboundNatPools', 'RDP')]"
+                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/RDP')]"
                                         }]
                                     }
                                 }]
