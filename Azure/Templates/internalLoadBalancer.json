@@ -71,6 +71,10 @@
         "ipAddress": {
             "type": "string",
             "value": "[reference(variables('loadBalancerName')).frontendIPConfigurations[0].properties.privateIPAddress]"
+        },
+        "subnetRef": {
+            "type": "string",
+            "value": "[variables('subnetRef')]"
         }
     }
 }

@@ -52,8 +52,6 @@
         "virtualMachinePrefix": "[parameters('name')]",
         "networkInterfaceName": "[concat(parameters('name'), '-NIC')]",
         "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
-        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
         "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
         "fabricTcpGatewayPort": "19000",
         "fabricHttpGatewayPort": "19080",
@@ -176,10 +174,13 @@
                                     "name": "[concat(variables('virtualMachinePrefix'), '-IPConfig')]",
                                     "properties": {
                                         "subnet": {
-                                            "id": "[variables('subnetRef')]"
+                                            "id": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.subnetRef.value]"
                                         },
                                         "loadBalancerBackendAddressPools": [{
                                             "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                                        }],
+                                        "loadBalancerInboundNatPools": [{
+                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/RDP')]"
                                         }]
                                     }
                                 }]
