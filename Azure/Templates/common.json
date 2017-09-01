@@ -4,11 +4,26 @@
     "parameters": {
         "name": {
             "type": "string"
+        },
+        "appPort": {
+            "type": "int"
+        },
+        "type": {
+            "type": "string",
+            "allowedValues": [
+                "public",
+                "internal"
+            ]
         }
     },
     "variables": {
         "appInsightsName": "[concat(parameters('name'), 'AppInsights')]",
-        "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]"
+        "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]",
+        "fabricHttpGatewayPort": 19080,
+        "fabricTcpGatewayPort": 19000,
+        "fabricSourceAddressPrefix": "[concat(parameters('type'), 'FabricSourceAddressPrefix')]",
+        "publicFabricSourceAddressPrefix": "*",
+        "internalFabricSourceAddressPrefix": "VirtualNetwork"
     },
     "resources": [{
             "apiVersion": "2015-05-01",
@@ -33,11 +48,71 @@
                     "properties": {
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
-                        "destinationPortRange": "80",
-                        "sourceAddressPrefix": "*",
+                        "destinationPortRange": "[parameters('appPort')]",
+                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
                         "priority": 100,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "HTTPLBProbe",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('appPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 110,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricTcpGateway",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
+                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 200,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricTcpGatewayLBProbe",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 210,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricHttpGateway",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
+                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 300,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricHttpGatewayLBProbe",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 310,
                         "direction": "Inbound"
                     }
                 }]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Fabric;
+using Microsoft.ApplicationInsights.ServiceFabric;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 using OctopusDeployNuGetFeed.OWIN;
@@ -25,10 +26,9 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric
         /// <returns>A collection of listeners.</returns>
         protected override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
-            return new[]
-            {
-                new ServiceInstanceListener(serviceContext => new OwinCommunicationListener(serviceContext, _startup, nameof(NuGetFeedService) + "Endpoint"))
-            };
+            FabricTelemetryInitializerExtension.SetServiceCallContext(Context);
+
+            yield return new ServiceInstanceListener(serviceContext => new OwinCommunicationListener(serviceContext, _startup, nameof(NuGetFeedService) + "Endpoint"));
         }
     }
 }

@@ -9,6 +9,7 @@ using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
+using Microsoft.ApplicationInsights.ServiceFabric;
 
 namespace OctopusDeployNuGetFeed.Logging
 {
@@ -134,6 +135,11 @@ namespace OctopusDeployNuGetFeed.Logging
 
             UsePerformanceCounters();
 
+            if (Program.IsRunningOnServiceFabric())
+                UseFabricTelemetry();
+
+            TelemetryConfiguration.Active.TelemetryProcessorChainBuilder.Build();
+
             _telemetryClient = new TelemetryClient(TelemetryConfiguration.Active)
             {
                 InstrumentationKey = _instrumentationKey
@@ -142,6 +148,11 @@ namespace OctopusDeployNuGetFeed.Logging
             _telemetryClient.Context.Device.Id = Environment.MachineName;
             _telemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.VersionString;
             _telemetryClient.Context.Device.Type = "Web Connection";
+        }
+
+        private void  UseFabricTelemetry()
+        {
+            TelemetryConfiguration.Active.TelemetryInitializers.Add(new FabricTelemetryInitializer());
         }
 
         public void TrackTrace(string message, SeverityLevel severityLevel)
@@ -180,7 +191,6 @@ namespace OctopusDeployNuGetFeed.Logging
                 quickPulseModule.RegisterTelemetryProcessor(processor);
                 return processor;
             });
-            TelemetryConfiguration.Active.TelemetryProcessorChainBuilder.Build();
         }
 
         private void UsePerformanceCounters()

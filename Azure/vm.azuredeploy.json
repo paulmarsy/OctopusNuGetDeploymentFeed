@@ -3,38 +3,52 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "name": {
-      "type": "string"
+        "type": "string"
     },
     "virtualMachineInstances": {
-      "type": "int",
-      "defaultValue": 1
+        "type": "int"
     },
     "virtualMachineSize": {
-      "type": "string",
-      "defaultValue": "Standard_A1_v2"
+        "type": "string"
     },
     "adminUsername": {
-      "type": "string"
+        "type": "string"
     },
     "adminPassword": {
-      "type": "securestring"
+        "type": "securestring"
+    },
+    "type": {
+        "type": "string",
+        "allowedValues": [
+            "public",
+            "internal"
+        ]
     },
     "virtualNetworkResourceGroupName": {
-      "type": "string"
+        "type": "string"
     },
     "virtualNetworkName": {
-      "type": "string"
+        "type": "string"
     },
     "virtualNetworkSubnetName": {
-      "type": "string"
+        "type": "string"
+    },
+    "keyVaultResourceId": {
+        "type": "string"
+    },
+    "certificateUrl": {
+        "type": "string"
+    },
+    "certificateThumbprint": {
+        "type": "string"
     },
     "customDeployScript": {
-      "type": "string"
+        "type": "string"
     },
-    "customDownloadUri": {
-      "type": "string"
+    "customAppUri": {
+        "type": "string"
     }
-  },
+},
   "variables": {
     "virtualMachineName": "[parameters('name')]",
     "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",

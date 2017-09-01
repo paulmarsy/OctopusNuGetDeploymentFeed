@@ -80,7 +80,7 @@ namespace OctopusDeployNuGetFeed
             return builder.Build();
         }
 
-        private static bool IsRunningOnServiceFabric()
+        public static bool IsRunningOnServiceFabric()
         {
             try
             {

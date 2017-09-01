@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Fabric;
 using System.Threading;
+using Microsoft.ApplicationInsights.ServiceFabric;
 using Microsoft.ServiceFabric.Data;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Remoting;
@@ -26,7 +27,9 @@ namespace OctopusDeployNuGetFeed.Remoting
 
         protected override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
         {
-            yield return new ServiceReplicaListener(context => new FabricTransportServiceRemotingListener(context, new ContextServiceRemotingDispatcher<TContext>(context, this, ContextName, contextObject => _asyncLocalContext.Value = contextObject), new FabricTransportRemotingListenerSettings
+            FabricTelemetryInitializerExtension.SetServiceCallContext(Context);
+            
+            yield return new ServiceReplicaListener(context =>new FabricTransportServiceRemotingListener(context,new ContextServiceRemotingDispatcher<TContext>(context, this, ContextName, contextObject => _asyncLocalContext.Value = contextObject), new FabricTransportRemotingListenerSettings
             {
                 EndpointResourceName = ServiceEndpointName
             }), ServiceName);

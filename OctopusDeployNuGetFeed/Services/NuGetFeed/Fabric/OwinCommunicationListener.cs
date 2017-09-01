@@ -2,6 +2,7 @@ using System;
 using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.ApplicationInsights.ServiceFabric;
 using Microsoft.Owin.Hosting;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using OctopusDeployNuGetFeed.Logging;
@@ -29,6 +30,7 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric
 
             var listeningAddress = $"{serviceEndpoint.Protocol}://+:{serviceEndpoint.Port}/";
             _webApiApp = WebApp.Start(listeningAddress, appBuilder => _startup.Configuration(appBuilder));
+            FabricTelemetryInitializerExtension.CreateFabricTelemetryInitializer(_serviceContext);
 
             var publishAddress = listeningAddress.Replace("+", FabricRuntime.GetNodeContext().IPAddressOrFQDN);
             ServiceEventSource.Current.Info($"Listening on {publishAddress}");

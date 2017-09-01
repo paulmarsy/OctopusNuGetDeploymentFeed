@@ -6,12 +6,10 @@
             "type": "string"
         },
         "virtualMachineInstances": {
-            "type": "int",
-            "defaultValue": 2
+            "type": "int"
         },
         "virtualMachineSize": {
-            "type": "string",
-            "defaultValue": "Standard_A1_v2"
+            "type": "string"
         },
         "adminUsername": {
             "type": "string"
@@ -35,9 +33,6 @@
         "virtualNetworkSubnetName": {
             "type": "string"
         },
-        "customDeployScript": {
-            "type": "string"
-        },
         "keyVaultResourceId": {
             "type": "string"
         },
@@ -46,17 +41,25 @@
         },
         "certificateThumbprint": {
             "type": "string"
+        },
+        "customDeployScript": {
+            "type": "string"
+        },
+        "customAppUri": {
+            "type": "string"
         }
     },
     "variables": {
-        "fabricClusterName":"[concat(parameters('name'), 'Cluster')]",
-        "virtualMachinePrefix": "[parameters('name')]",
-        "networkInterfaceName": "[concat(parameters('name'), '-NIC')]",
+        "virtualMachinePrefix": "SvcFab",
+        "fabricClusterName": "[concat(parameters('name'), 'Cluster')]",
+        "networkInterfaceName": "[concat(variables('virtualMachinePrefix'), 'NIC')]",
         "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Azure/Templates/",
         "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
-        "fabricTcpGatewayPort": "19000",
-        "fabricHttpGatewayPort": "19080",
-        "vmNodeTypeName": "OctopusNuGetFeed"
+        "fabricTcpGatewayPort": 19000,
+        "fabricHttpGatewayPort": 19080,
+        "appPort": 80,
+        "networkSecurityGroupName": "[concat(parameters('name'), 'NSG')]",
+        "vmNodeTypeName": "OctopusDeployNuGetFeed"
     },
     "resources": [{
             "type": "Microsoft.Resources/deployments",
@@ -70,6 +73,12 @@
                 "parameters": {
                     "name": {
                         "value": "[parameters('name')]"
+                    },
+                    "appPort": {
+                        "value": "[variables('appPort')]"
+                    },
+                    "type": {
+                        "value": "[parameters('type')]"
                     }
                 }
             }
@@ -94,6 +103,9 @@
                     },
                     "virtualNetworkSubnetName": {
                         "value": "[parameters('virtualNetworkSubnetName')]"
+                    },
+                    "appPort": {
+                        "value": "[variables('appPort')]"
                     }
                 }
             }
@@ -157,7 +169,6 @@
                                     "nodeTypeRef": "[variables('vmNodeTypeName')]",
                                     "dataPath": "D:\\\\SvcFab",
                                     "durabilityLevel": "Bronze",
-                                    "nicPrefixOverride": "10.0.0.0/24",
                                     "certificate": {
                                         "thumbprint": "[parameters('certificateThumbprint')]",
                                         "x509StoreName": "My"
@@ -180,12 +191,12 @@
                                         },
                                         "loadBalancerBackendAddressPools": [{
                                             "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
-                                        }],
-                                        "loadBalancerInboundNatPools": [{
-                                            "id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/RDP')]"
                                         }]
                                     }
                                 }]
+                            },
+                            "networkSecurityGroup": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
                             }
                         }]
                     }
@@ -202,12 +213,10 @@
                     "thumbprint": "[parameters('certificateThumbprint')]",
                     "x509StoreName": "My"
                 },
-                "clientCertificateThumbprints": [
-                    {
-                      "certificateThumbprint": "[parameters('certificateThumbprint')]",
-                      "isAdmin": true
-                    }
-                  ],
+                "clientCertificateThumbprints": [{
+                    "certificateThumbprint": "[parameters('certificateThumbprint')]",
+                    "isAdmin": true
+                }],
                 "clusterState": "Default",
                 "managementEndpoint": "[concat('https://',reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricHttpGatewayPort'))]",
                 "nodeTypes": [{
@@ -236,9 +245,9 @@
             "type": "string",
             "value": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value]"
         },
-        "clusterEndpoint":{
-           "type": "string",
-            "value": "[concat(reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricTcpGatewayPort'))]"
+        "clusterEndpoint": {
+            "type": "string",
+            "value": "[concat('tcp://', reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricTcpGatewayPort'))]"
         }
     }
 }

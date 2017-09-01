@@ -13,15 +13,20 @@
         },
         "virtualNetworkSubnetName": {
             "type": "string"
+        },
+        "appPort": {
+            "type": "int"
         }
     },
     "variables": {
         "loadBalancerName": "[concat(parameters('name'), 'LoadBalancer')]",
         "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]"
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+        "fabricHttpGatewayPort": 19080,
+        "fabricTcpGatewayPort": 19000
     },
     "resources": [{
-        "apiVersion": "2016-03-30",
+        "apiVersion": "2015-06-15",
         "name": "[variables('loadBalancerName')]",
         "type": "Microsoft.Network/loadBalancers",
         "location": "[resourceGroup().location]",
@@ -39,6 +44,7 @@
                 "name": "Backend"
             }],
             "loadBalancingRules": [{
+                "name": "HTTP",
                 "properties": {
                     "frontendIPConfiguration": {
                         "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
@@ -50,21 +56,64 @@
                         "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/HttpProbe')]"
                     },
                     "protocol": "Tcp",
-                    "frontendPort": 80,
-                    "backendPort": 80
-                },
-                "name": "HTTP"
+                    "frontendPort": "[parameters('appPort')]",
+                    "backendPort": "[parameters('appPort')]"
+                }
+            }, {
+                "name": "FabricTcpGateway",
+                "properties": {
+                    "frontendIPConfiguration": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
+                    },
+                    "backendAddressPool": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                    },
+                    "probe": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/FabricTcpGatewayProbe')]"
+                    },
+                    "protocol": "Tcp",
+                    "frontendPort": "[variables('fabricTcpGatewayPort')]",
+                    "backendPort": "[variables('fabricTcpGatewayPort')]"
+                }
+            }, {
+                "name": "FabricHttpGateway",
+                "properties": {
+                    "frontendIPConfiguration": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/Frontend')]"
+                    },
+                    "backendAddressPool": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/Backend')]"
+                    },
+                    "probe": {
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/FabricHttpGatewayProbe')]"
+                    },
+                    "protocol": "Tcp",
+                    "frontendPort": "[variables('fabricHttpGatewayPort')]",
+                    "backendPort": "[variables('fabricHttpGatewayPort')]"
+                }
             }],
             "probes": [{
-                "name": "HttpProbe",
-                "properties": {
-                    "protocol": "Http",
-                    "port": 80,
-                    "requestPath": "/lbprobe",
-                    "intervalInSeconds": 15,
-                    "numberOfProbes": 2
+                    "name": "HttpProbe",
+                    "properties": {
+                        "protocol": "Http",
+                        "port": "[parameters('appPort')]",
+                        "requestPath": "/lbprobe"
+                    }
+                }, {
+                    "name": "FabricTcpGatewayProbe",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "port": "[variables('fabricTcpGatewayPort')]"
+                    }
+                },
+                {
+                    "name": "FabricHttpGatewayProbe",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "port": "[variables('fabricHttpGatewayPort')]"
+                    }
                 }
-            }]
+            ]
         }
     }],
     "outputs": {
