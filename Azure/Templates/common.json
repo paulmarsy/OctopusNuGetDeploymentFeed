@@ -21,7 +21,7 @@
         "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]",
         "fabricHttpGatewayPort": 19080,
         "fabricTcpGatewayPort": 19000,
-        "fabricSourceAddressPrefix": "[concat(parameters('type'), 'FabricSourceAddressPrefix')]",
+        "fabricSourceAddressPrefix": "[variables(concat(parameters('type'), 'FabricSourceAddressPrefix'))]",
         "publicFabricSourceAddressPrefix": "*",
         "internalFabricSourceAddressPrefix": "VirtualNetwork"
     },
