@@ -8,8 +8,11 @@
   <Section Name="OctopusReleaseRepositoryServiceReplicatorConfig">
     <Parameter Name="ReplicatorEndpoint" Value="OctopusReleaseRepositoryServiceReplicatorEndpoint" />
   </Section>
-
-  <Section Name="AdminActorServiceServiceReplicatorConfig">
-    <Parameter Name="ReplicatorEndpoint" Value="AdminActorServiceReplicatorEndpoint" />
+  <Section Name="ServiceControlActorServiceReplicatorConfig">
+    <Parameter Name="ReplicatorEndpoint" Value="ServiceControlActorServiceReplicatorEndpoint" />
+    <Parameter Name="BatchAcknowledgementInterval" Value="0.005" />
+  </Section>
+  <Section Name="ServiceControlActorServiceReplicatorSecurityConfig">
+    <Parameter Name="CredentialType" Value="None" />
   </Section>
 </Settings>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Specialized;
 using System.Fabric;
 using System.Fabric.Description;
 using System.IO;
@@ -18,6 +19,8 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
         private const string ApplicationManifestName = "ApplicationManifest.xml";
         private const string ServiceManifestName = "ServiceManifest.xml";
         private const string SettingsName = "Settings.xml";
+
+        public const string Parameter = "deploy-service-fabric";
         private readonly ILogger _logger;
 
         public ServiceFabricDeploy(ILogger logger)
@@ -27,29 +30,41 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
         public async Task<int> Main(string[] args)
         {
+            var props = ParseProperties(args);
             var packagePath = CreateApplicationPackage();
 
-            var clusterFqdn = args[1];
-            var cerThumbprint = args[2];
-            _logger.Info($"Connecting to service fabric cluster {clusterFqdn} with certificate {cerThumbprint}...");
-            var xc = GetCredentials(cerThumbprint, cerThumbprint, clusterFqdn);
-            var fabricClient = new FabricClient(xc, $"{clusterFqdn}:{ClusterManagementPort}");
+            _logger.Info($"Connecting to service fabric cluster {props.endpoint} with certificate {props.certThumbprint}...");
+            var xc = GetCredentials(props.endpoint, props.certThumbprint, props.certThumbprint);
+            var fabricClient = new FabricClient(xc, $"{props.endpoint}:{ClusterManagementPort}");
 
-            _logger.Info("Copying application package to image store...");
+            _logger.Info("Copying application to image store...");
             fabricClient.ApplicationManager.CopyApplicationPackage(ImageStoreServiceConnectionString, packagePath, ApplicationTypeName);
 
-            _logger.Info($"Provisioning application type {ApplicationTypeName}...");
+            _logger.Info("Registering application type...");
             await fabricClient.ApplicationManager.ProvisionApplicationAsync(ApplicationTypeName);
 
-            _logger.Info($"Creating application instance of type {ApplicationTypeName}...");
-            var appDesc = new ApplicationDescription(new Uri($"fabric:/{ApplicationTypeName}"), ApplicationTypeName, "1.0.0");
+            _logger.Info("Creating application...");
+            _logger.Info($"Setting Application Insights Instrumentation Key: {props.appInsightsKey}");
+            var appDesc = new ApplicationDescription(new Uri($"fabric:/{ApplicationTypeName}"), ApplicationTypeName, "1.0.0", new NameValueCollection
+            {
+                {"OctopusDeployNuGetFeed_AppInsightsKey", props.appInsightsKey}
+            });
             await fabricClient.ApplicationManager.CreateApplicationAsync(appDesc);
 
-            _logger.Info("Service fabric application deployed successfully.");
+            _logger.Info("Create application succeeded.");
             return 0;
         }
 
-        private static X509Credentials GetCredentials(string clientCertThumb, string serverCertThumb, string name)
+        private static (string endpoint, string certThumbprint, string appInsightsKey) ParseProperties(string[] args)
+        {
+            const int argc = 3;
+            if (args.Length != argc)
+                throw new ArgumentException($"Expected {argc + 1} arguments but only {args.Length + 1} were provided. Command line format: {Path.GetFileName(Assembly.GetExecutingAssembly().Location)} {Parameter} <Cluster Endpoint FQDN> <Cluster Certificate Thumbprint> <App Insights Key>");
+
+            return (endpoint: args[1], certThumbprint: args[2], appInsightsKey: args[3]);
+        }
+
+        private static X509Credentials GetCredentials(string name, string clientCertThumb, string serverCertThumb)
         {
             var x509Credentials = new X509Credentials
             {

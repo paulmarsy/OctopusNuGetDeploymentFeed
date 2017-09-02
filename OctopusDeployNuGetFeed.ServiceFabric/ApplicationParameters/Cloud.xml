@@ -2,11 +2,5 @@
 <Application xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="fabric:/OctopusDeployNuGetFeed.ServiceFabric" xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="NuGetFeedService_InstanceCount" Value="-1" />
-    <Parameter Name="OctopusProjectRepositoryService_PartitionCount" Value="1" />
-    <Parameter Name="OctopusProjectRepositoryService_MinReplicaSetSize" Value="3" />
-    <Parameter Name="OctopusProjectRepositoryService_TargetReplicaSetSize" Value="3" />
-    <Parameter Name="OctopusReleaseRepositoryService_PartitionCount" Value="10" />
-    <Parameter Name="OctopusReleaseRepositoryService_MinReplicaSetSize" Value="3" />
-    <Parameter Name="OctopusReleaseRepositoryService_TargetReplicaSetSize" Value="3" />
   </Parameters>
 </Application>

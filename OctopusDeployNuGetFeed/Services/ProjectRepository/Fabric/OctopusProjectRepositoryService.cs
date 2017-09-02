@@ -7,30 +7,26 @@ using Microsoft.ServiceFabric.Actors.Client;
 using OctopusDeployNuGetFeed.Model;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.Remoting;
-using OctopusDeployNuGetFeed.Services.AdminActor.Fabric;
+using OctopusDeployNuGetFeed.Services.ControlService;
+using OctopusDeployNuGetFeed.Services.ControlService.Fabric;
 
 namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
 {
-    public class OctopusProjectRepositoryService : BaseRemotingService<OctopusCredential>, IProjectRepository, IAdminActorEvents
+    public class OctopusProjectRepositoryService : BaseRemotingService<OctopusCredential>, IProjectRepository, IServiceControlEvents
     {
-        private readonly IAdminActor _adminProxy;
         private readonly IProjectRepositoryFactory _factory;
         private readonly IOctopusClientFactory _octopusClientFactory;
+        private readonly IServiceControl _serviceControlActor;
 
 
         public OctopusProjectRepositoryService(StatefulServiceContext serviceContext, string replicatorSettingsSectionName, IProjectRepositoryFactory factory, IOctopusClientFactory octopusClientFactory) : base(serviceContext, replicatorSettingsSectionName)
         {
             _factory = factory;
             _octopusClientFactory = octopusClientFactory;
-            _adminProxy = ActorProxy.Create<IAdminActor>(new ActorId(nameof(OctopusDeployNuGetFeed)), FabricRuntime.GetActivationContext().ApplicationName);
+            _serviceControlActor = ActorProxy.Create<IServiceControl>(new ActorId(nameof(OctopusDeployNuGetFeed)), FabricRuntime.GetActivationContext().ApplicationName);
         }
 
         public override string ServiceName => nameof(OctopusProjectRepositoryService);
-
-        public void Decache()
-        {
-            _octopusClientFactory.Reset();
-        }
 
         public Task<IEnumerable<ODataPackage>> GetAllProjectsAsync()
         {
@@ -42,18 +38,23 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
             return _factory.GetProjectRepository(ContextObject).ExistsAsync(projectName);
         }
 
+        public void Decache()
+        {
+            _octopusClientFactory.Decache().Wait();
+        }
+
         protected override async Task OnChangeRoleAsync(ReplicaRole newRole, CancellationToken cancellationToken)
         {
             switch (newRole)
             {
                 case ReplicaRole.Primary:
-                    await _adminProxy.SubscribeAsync<IAdminActorEvents>(this);
+                    await _serviceControlActor.SubscribeAsync<IServiceControlEvents>(this);
                     break;
                 case ReplicaRole.Unknown:
                 case ReplicaRole.None:
                 case ReplicaRole.IdleSecondary:
                 case ReplicaRole.ActiveSecondary:
-                    await _adminProxy.UnsubscribeAsync<IAdminActorEvents>(this);
+                    await _serviceControlActor.UnsubscribeAsync<IServiceControlEvents>(this);
                     break;
             }
         }

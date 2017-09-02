@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.IO;
 using System.Reflection;
 using ApplicationInsights.OwinExtensions;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.EventSourceListener;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
@@ -135,6 +137,8 @@ namespace OctopusDeployNuGetFeed.Logging
 
             UsePerformanceCounters();
 
+            UseEventSourceTelemetry();
+
             if (Program.IsRunningOnServiceFabric())
                 UseFabricTelemetry();
 
@@ -199,6 +203,17 @@ namespace OctopusDeployNuGetFeed.Logging
             foreach (var counter in PerformanceCounters)
                 perfCollectorModule.Counters.Add(new PerformanceCounterCollectionRequest(counter, counter.Split('\\')[1]));
             perfCollectorModule.Initialize(TelemetryConfiguration.Active);
+        }
+
+        private void UseEventSourceTelemetry()
+        {
+            var eventSourceModule = new EventSourceTelemetryModule();
+            eventSourceModule.Sources.Add(new EventSourceListeningRequest
+            {
+                Name = EventSource.GetName(typeof(ServiceFabricEventSource)),
+                Level = EventLevel.Informational
+            });
+            eventSourceModule.Initialize(TelemetryConfiguration.Active);
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace OctopusDeployNuGetFeed.Logging
 {
     [EventSource(Name = nameof(OctopusDeployNuGetFeed))]
-    public sealed class ServiceEventSource : EventSource, ILogger
+    public sealed class ServiceFabricEventSource : EventSource, ILogger
     {
         // Define an instance method for each event you want to record and apply an [Event] attribute to it.
         // The method name is the name of the event.
@@ -33,9 +33,9 @@ namespace OctopusDeployNuGetFeed.Logging
         private const int ServiceHostInitializationFailedEventId = 4;
 
         private const int ActorTypeRegisteredEventId = 5;
-        public static readonly ServiceEventSource Current = new ServiceEventSource();
+        public static readonly ServiceFabricEventSource Current = new ServiceFabricEventSource();
 
-        static ServiceEventSource()
+        static ServiceFabricEventSource()
         {
             // A workaround for the problem where ETW activities do not get tracked until Tasks infrastructure is initialized.
             // This problem will be fixed in .NET Framework 4.6.2.
@@ -43,7 +43,7 @@ namespace OctopusDeployNuGetFeed.Logging
         }
 
         // Instance constructor is private to enforce singleton semantics
-        private ServiceEventSource()
+        private ServiceFabricEventSource()
         {
         }
 

@@ -7,7 +7,8 @@ using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.OWIN;
 using OctopusDeployNuGetFeed.ServiceFabric;
-using OctopusDeployNuGetFeed.Services.AdminActor.Fabric;
+using OctopusDeployNuGetFeed.Services.ControlService;
+using OctopusDeployNuGetFeed.Services.ControlService.Remote;
 using OctopusDeployNuGetFeed.Services.NuGetFeed;
 using OctopusDeployNuGetFeed.Services.ProjectRepository;
 using OctopusDeployNuGetFeed.Services.ProjectRepository.Remote;
@@ -45,25 +46,28 @@ namespace OctopusDeployNuGetFeed
             appInsights.Initialize();
             builder.RegisterInstance(appInsights).As<IAppInsights>();
 
-            builder.RegisterInstance(new LogManager(appInsights, ServiceEventSource.Current)).As<ILogger>();
+            var logger = new LogManager(appInsights, ServiceFabricEventSource.Current);
+            builder.RegisterInstance(logger).As<ILogger>();
+            var octopusClientFactory = new OctopusClientFactory(logger, appInsights);
             if (IsRunningOnServiceFabric())
             {
                 builder.RegisterType<RemoteProjectRepositoryFactory>().As<IProjectRepositoryFactory>();
                 builder.RegisterType<OctopusProjectRepositoryFactory>().AsSelf();
                 builder.RegisterType<RemoteReleaseRepositoryFactory>().As<IReleaseRepositoryFactory>();
                 builder.RegisterType<OctopusReleaseRepositoryFactory>().AsSelf();
-                builder.RegisterType<RemoteAdminServiceClient>().As<IAdminService>();
+                builder.RegisterType<RemoteServiceControlClient>().As<IServiceControl>();
+                builder.RegisterInstance(octopusClientFactory).As<IOctopusClientFactory>();
             }
             else
             {
                 builder.RegisterType<OctopusProjectRepositoryFactory>().As<IProjectRepositoryFactory>().AsSelf();
                 builder.RegisterType<OctopusReleaseRepositoryFactory>().As<IReleaseRepositoryFactory>().AsSelf();
-                builder.RegisterType<AdminService>().As<IAdminService>();
+                builder.RegisterInstance(octopusClientFactory).As<IOctopusClientFactory>().As<IServiceControl>();
+
                 builder.RegisterType<ServiceWatchdog>().AsSelf();
             }
             builder.RegisterType<NuGetFeedStartup>().As<IOwinStartup>();
 
-            builder.RegisterType<OctopusClientFactory>().As<IOctopusClientFactory>().SingleInstance();
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
             return builder.Build();
@@ -78,9 +82,9 @@ namespace OctopusDeployNuGetFeed
 
             if (args.Length >= 1)
             {
-                if (args[0] == "version")
+                if (args[0] == VersionProgram.Parameter)
                     entryPoint = typeof(VersionProgram);
-                if (args[0] == "deploy-service-fabric")
+                if (args[0] == ServiceFabricDeploy.Parameter)
                     entryPoint = typeof(ServiceFabricDeploy);
             }
 

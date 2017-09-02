@@ -179,6 +179,77 @@
                                 },
                                 "typeHandlerVersion": "1.0"
                             }
+                        },
+                        {
+                            "name": "[concat(variables('vmNodeTypeName'),'_VMDiagnosticsVmExt')]",     
+                          "properties": {
+                            "type": "IaaSDiagnostics",
+                            "autoUpgradeMinorVersion": true,
+                            "publisher": "AIP.Diagnostics.Test",
+                            "settings": {
+                              "WadCfg": {
+                                "SinksConfig": {
+                                  "Sink": [
+                                    {
+                                      "name": "[concat(variables('vmNodeTypeName'), 'AppInsightsProfilerSink')]",
+                                      "ApplicationInsightsProfiler": "[reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value]"
+                                    }
+                                  ]
+                                },
+                                "DiagnosticMonitorConfiguration": {
+                                  "overallQuotaInMB": "4096",
+                                  "DiagnosticInfrastructureLogs": {
+                                    "scheduledTransferLogLevelFilter": "Error"
+                                  },
+                                  "WindowsEventLog": {
+                                    "scheduledTransferPeriod": "PT1M",
+                                    "DataSource": [
+                                      {
+                                        "name": "Application!*[System[(Level = 1) or (Level = 2)]]"
+                                      },
+                                      {
+                                        "name": "Security!*[System[(Level = 1 or Level = 2)]]"
+                                      },
+                                      {
+                                        "name": "System!*[System[(Level = 1 or Level = 2)]]"
+                                      }
+                                    ]
+                                  },
+                                  "EtwProviders": {
+                                    "EtwEventSourceProviderConfiguration": [
+                                      {
+                                        "provider": "Microsoft-ServiceFabric-Actors",
+                                        "scheduledTransferKeywordFilter": "1",
+                                        "scheduledTransferPeriod": "PT5M",
+                                        "DefaultEvents": {
+                                          "eventDestination": "ServiceFabricReliableActorEventTable"
+                                        }
+                                      },
+                                      {
+                                        "provider": "Microsoft-ServiceFabric-Services",
+                                        "scheduledTransferPeriod": "PT5M",
+                                        "DefaultEvents": {
+                                          "eventDestination": "ServiceFabricReliableServiceEventTable"
+                                        }
+                                      }
+                                    ],
+                                    "EtwManifestProviderConfiguration": [
+                                      {
+                                        "provider": "cbd93bc2-71e5-4566-b3a7-595d8eeca6e8",
+                                        "scheduledTransferLogLevelFilter": "Information",
+                                        "scheduledTransferKeywordFilter": "4611686018427387904",
+                                        "scheduledTransferPeriod": "PT5M",
+                                        "DefaultEvents": {
+                                          "eventDestination": "ServiceFabricSystemEventTable"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "typeHandlerVersion": "0.0"
+                          }
                         }]
                     },
                     "networkProfile": {
@@ -260,6 +331,10 @@
         "ipAddress": {
             "type": "string",
             "value": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value]"
+        },
+        "appInsightsKey":{
+            "type":"string",
+            "value": "[reference('Microsoft.Resources/deployments/common').outputs.appInsightsKey.value]"
         }
     }
 }

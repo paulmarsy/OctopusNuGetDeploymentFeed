@@ -6,6 +6,8 @@ namespace OctopusDeployNuGetFeed
 {
     public class VersionProgram : IProgram
     {
+        public const string Parameter = "version";
+
         public static string Version
         {
             get

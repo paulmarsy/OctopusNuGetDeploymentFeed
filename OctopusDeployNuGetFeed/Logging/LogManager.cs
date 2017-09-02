@@ -7,9 +7,9 @@ namespace OctopusDeployNuGetFeed.Logging
     {
         private readonly IAppInsights _appInsightsLogger;
         private readonly ConsoleLogger _consoleLogger;
-        private readonly ServiceEventSource _serviceFabricLogger;
+        private readonly ServiceFabricEventSource _serviceFabricLogger;
 
-        public LogManager(IAppInsights appInsights, ServiceEventSource serviceFabricEventSource)
+        public LogManager(IAppInsights appInsights, ServiceFabricEventSource serviceFabricEventSource)
         {
             _consoleLogger = new ConsoleLogger();
             _appInsightsLogger = appInsights;

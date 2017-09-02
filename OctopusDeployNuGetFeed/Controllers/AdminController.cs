@@ -2,20 +2,20 @@ using System;
 using System.Threading.Tasks;
 using System.Web.Http;
 using OctopusDeployNuGetFeed.Octopus;
-using OctopusDeployNuGetFeed.Services.AdminActor.Fabric;
+using OctopusDeployNuGetFeed.Services.ControlService;
 
 namespace OctopusDeployNuGetFeed.Controllers
 {
     [Authorize(Roles = "Authenticated")]
     public class AdminController : ApiController
     {
-        private readonly IAdminService _adminService;
         private readonly IOctopusClientFactory _octopusClientFactory;
+        private readonly IServiceControl _serviceControl;
 
-        public AdminController(IOctopusClientFactory octopusClientFactory, IAdminService adminService)
+        public AdminController(IOctopusClientFactory octopusClientFactory, IServiceControl serviceControl)
         {
             _octopusClientFactory = octopusClientFactory;
-            _adminService = adminService;
+            _serviceControl = serviceControl;
         }
 
         [HttpGet]
@@ -47,9 +47,9 @@ namespace OctopusDeployNuGetFeed.Controllers
         }
 
         [HttpGet]
-        public IHttpActionResult Decache()
+        public async Task<IHttpActionResult> Decache()
         {
-            _adminService.Decache();
+            await _serviceControl.Decache();
             return Stats();
         }
     }

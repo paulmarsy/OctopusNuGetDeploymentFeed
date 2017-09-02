@@ -7,7 +7,7 @@ using Microsoft.ServiceFabric.Services.Runtime;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.OWIN;
-using OctopusDeployNuGetFeed.Services.AdminActor.Fabric;
+using OctopusDeployNuGetFeed.Services.ControlService.Fabric;
 using OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric;
 using OctopusDeployNuGetFeed.Services.ProjectRepository;
 using OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric;
@@ -39,16 +39,16 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             try
             {
                 await ServiceRuntime.RegisterServiceAsync(nameof(NuGetFeedService), context => new NuGetFeedService(context, _startup));
-                ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(NuGetFeedService).Name);
+                ServiceFabricEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(NuGetFeedService).Name);
 
                 await ServiceRuntime.RegisterServiceAsync(nameof(OctopusProjectRepositoryService), context => new OctopusProjectRepositoryService(context, "OctopusProjectRepositoryServiceReplicatorConfig", _octopusProjectRepositoryFactory, _octopusClientFactory));
-                ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(OctopusProjectRepositoryService).Name);
+                ServiceFabricEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(OctopusProjectRepositoryService).Name);
 
                 await ServiceRuntime.RegisterServiceAsync(nameof(OctopusReleaseRepositoryService), context => new OctopusReleaseRepositoryService(context, "OctopusReleaseRepositoryServiceReplicatorConfig", _octopusReleaseRepositoryFactory, _octopusClientFactory));
-                ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(OctopusReleaseRepositoryService).Name);
+                ServiceFabricEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(OctopusReleaseRepositoryService).Name);
 
-                await ActorRuntime.RegisterActorAsync<AdminActorService>((context, actorType) => new ActorService(context, actorType));
-                ServiceEventSource.Current.ActorTypeRegistered(Process.GetCurrentProcess().Id, typeof(AdminActorService).Name);
+                await ActorRuntime.RegisterActorAsync<ServiceControl>((context, actorType) => new ActorService(context, actorType));
+                ServiceFabricEventSource.Current.ActorTypeRegistered(Process.GetCurrentProcess().Id, typeof(ServiceControl).Name);
 
                 // Prevents this host process from terminating so services keep running.
                 await Task.Delay(Timeout.Infinite);
@@ -56,7 +56,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             }
             catch (Exception e)
             {
-                ServiceEventSource.Current.ServiceHostInitializationFailed(e.ToString());
+                ServiceFabricEventSource.Current.ServiceHostInitializationFailed(e.ToString());
                 throw;
             }
         }

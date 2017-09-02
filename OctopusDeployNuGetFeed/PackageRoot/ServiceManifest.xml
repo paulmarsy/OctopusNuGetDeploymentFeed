@@ -9,7 +9,20 @@
     <StatelessServiceType ServiceTypeName="NuGetFeedService" />
     <StatefulServiceType ServiceTypeName="OctopusProjectRepositoryService" HasPersistedState="true" />
     <StatefulServiceType ServiceTypeName="OctopusReleaseRepositoryService" HasPersistedState="true" />
-    <StatefulServiceType ServiceTypeName="AdminActorService" HasPersistedState="true" />
+    <StatefulServiceType ServiceTypeName="ServiceControlActorServiceType">
+      <Extensions>
+        <Extension Name="__GeneratedServiceType__" GeneratedId="bf088e80-b976-4143-a3b4-0500d9093489|None">
+          <GeneratedNames xmlns="http://schemas.microsoft.com/2015/03/fabact-no-schema">
+            <DefaultService Name="ServiceControlActorService" />
+            <ServiceEndpoint Name="ServiceControlActorServiceEndpoint" />
+            <ReplicatorEndpoint Name="ServiceControlActorServiceReplicatorEndpoint" />
+            <ReplicatorConfigSection Name="ServiceControlActorServiceReplicatorConfig" />
+            <ReplicatorSecurityConfigSection Name="ServiceControlActorServiceReplicatorSecurityConfig" />
+            <StoreConfigSection Name="ServiceControlActorServiceLocalStoreConfig" />
+          </GeneratedNames>
+        </Extension>
+      </Extensions>
+    </StatefulServiceType>
   </ServiceTypes>
 
   <CodePackage Name="Code" Version="1.0.0">
@@ -18,6 +31,9 @@
         <Program>OctopusDeployNuGetFeed.exe</Program>
       </ExeHost>
     </EntryPoint>
+    <EnvironmentVariables>
+      <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey" Value="" />
+    </EnvironmentVariables>
   </CodePackage>
 
   <!-- Config package is the contents of the Config directoy under PackageRoot that contains an 
@@ -30,14 +46,14 @@
       <Endpoint Name="NuGetFeedServiceEndpoint" Type="Input" Protocol="http" Port="80" />
 
       <!-- Internal / Private -->
-      <Endpoint Name="OctopusProjectRepositoryServiceEndpoint" />
-      <Endpoint Name="OctopusProjectRepositoryServiceReplicatorEndpoint" />
+      <Endpoint Name="OctopusProjectRepositoryServiceEndpoint" Type="Internal" Protocol="tcp" />
+      <Endpoint Name="OctopusProjectRepositoryServiceReplicatorEndpoint" Type="Internal" Protocol="tcp" />
 
-      <Endpoint Name="OctopusReleaseRepositoryServiceEndpoint" />
-      <Endpoint Name="OctopusReleaseRepositoryServiceReplicatorEndpoint" />
+      <Endpoint Name="OctopusReleaseRepositoryServiceEndpoint" Type="Internal" Protocol="tcp" />
+      <Endpoint Name="OctopusReleaseRepositoryServiceReplicatorEndpoint" Type="Internal" Protocol="tcp" />
 
-      <Endpoint Name="AdminActorServiceEndpoint" />
-      <Endpoint Name="AdminActorServiceReplicatorEndpoint" />
+      <Endpoint Name="ServiceControlActorServiceEndpoint" Type="Internal" Protocol="tcp" />
+      <Endpoint Name="ServiceControlActorServiceReplicatorEndpoint" Type="Internal" Protocol="tcp" />
     </Endpoints>
   </Resources>
 </ServiceManifest>

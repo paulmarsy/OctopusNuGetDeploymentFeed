@@ -29,17 +29,23 @@
   <ItemGroup>
     <None Remove="deploy.config" />
     <None Remove="deploy.ps1" />
-    <None Remove="PackageRoot\ApplicationManifest.xml" />
     <None Remove="PackageRoot\Config\Settings.xml" />
     <None Remove="PackageRoot\ServiceManifest.xml" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="PackageRoot\ApplicationManifest.xml" />
+    <EmbeddedResource Include="..\OctopusDeployNuGetFeed.ServiceFabric\ApplicationPackageRoot\ApplicationManifest.xml" Link="PackageRoot\ApplicationManifest.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="PackageRoot\Config\Settings.xml" />
     <EmbeddedResource Include="PackageRoot\ServiceManifest.xml" />
     <EmbeddedResource Include="Resources\deploy.config" />
     <EmbeddedResource Include="Resources\deploy.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Services\ControlService\IServiceControl.cs" />
   </ItemGroup>
 
   <ItemGroup>

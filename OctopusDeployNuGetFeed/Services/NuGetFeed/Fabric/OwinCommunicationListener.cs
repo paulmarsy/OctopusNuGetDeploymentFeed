@@ -33,7 +33,7 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric
             FabricTelemetryInitializerExtension.CreateFabricTelemetryInitializer(_serviceContext);
 
             var publishAddress = listeningAddress.Replace("+", FabricRuntime.GetNodeContext().IPAddressOrFQDN);
-            ServiceEventSource.Current.Info($"Listening on {publishAddress}");
+            ServiceFabricEventSource.Current.Info($"Listening on {publishAddress}");
 
             return Task.FromResult(publishAddress);
         }

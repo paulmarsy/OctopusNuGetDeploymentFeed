@@ -22,16 +22,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             _metricTimer = new Timer(MetricTimerHandler, null, TimeSpan.Zero, TimeSpan.FromMinutes(15));
         }
 
-        public void Reset()
-        {
-            lock (_instances)
-            {
-                foreach (var instance in _instances)
-                    instance.Value.Dispose();
-                _instances.Clear();
-            }
-        }
-
         public int RegisteredOctopusServers => _instances.Count;
 
         public async Task<bool> IsAuthenticated(OctopusCredential credential)
@@ -48,6 +38,17 @@ namespace OctopusDeployNuGetFeed.Octopus
         public IOctopusServer GetServer(OctopusCredential credential)
         {
             return (GetInstance(credential) ?? CreateOctopusInstance(credential).GetAwaiter().GetResult()).Server;
+        }
+
+        public Task Decache()
+        {
+            lock (_instances)
+            {
+                foreach (var instance in _instances)
+                    instance.Value.Dispose();
+                _instances.Clear();
+            }
+            return Task.CompletedTask;
         }
 
         private void MetricTimerHandler(object state)
