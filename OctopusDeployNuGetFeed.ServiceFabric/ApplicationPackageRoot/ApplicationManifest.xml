@@ -8,6 +8,9 @@
     <Parameter Name="OctopusReleaseRepositoryService_PartitionCount" DefaultValue="10" />
     <Parameter Name="OctopusReleaseRepositoryService_MinReplicaSetSize" DefaultValue="3" />
     <Parameter Name="OctopusReleaseRepositoryService_TargetReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="AdminActorServiceActorService_PartitionCount" DefaultValue="10" />
+    <Parameter Name="AdminActorServiceActorService_MinReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="AdminActorServiceActorService_TargetReplicaSetSize" DefaultValue="3" />
   </Parameters>
   <ServiceManifestImport>
     <ServiceManifestRef ServiceManifestName="OctopusDeployNuGetFeed" ServiceManifestVersion="1.0.0" />

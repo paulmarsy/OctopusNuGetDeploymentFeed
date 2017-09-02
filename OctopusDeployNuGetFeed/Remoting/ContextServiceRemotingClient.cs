@@ -19,9 +19,9 @@ namespace OctopusDeployNuGetFeed.Remoting
 {
     public class ContextServiceRemotingClient : IServiceRemotingClient
     {
+        private readonly Lazy<DataContractSerializer> _baggageSerializer = new Lazy<DataContractSerializer>(() => new DataContractSerializer(typeof(IEnumerable<KeyValuePair<string, string>>)));
         private readonly string _callContextDataName;
         private readonly TelemetryClient _telemetryClient = new TelemetryClient(TelemetryConfiguration.Active);
-        private readonly Lazy<DataContractSerializer> _baggageSerializer = new Lazy<DataContractSerializer>(() => new DataContractSerializer(typeof(IEnumerable<KeyValuePair<string, string>>)));
 
         public ContextServiceRemotingClient(IServiceRemotingClient wrappedClient, string callContextDataName)
         {
@@ -83,19 +83,17 @@ namespace OctopusDeployNuGetFeed.Remoting
                 messageHeaders.AddHeader(ServiceRemotingLoggingStrings.ParentIdHeaderName, operation.Telemetry.Id);
 
                 // We expect the baggage to not be there at all or just contain a few small items
-                Activity currentActivity = Activity.Current;
+                var currentActivity = Activity.Current;
                 if (currentActivity.Baggage.Any())
-                {
                     using (var ms = new MemoryStream())
                     {
                         var dictionaryWriter = XmlDictionaryWriter.CreateBinaryWriter(ms);
-                        this._baggageSerializer.Value.WriteObject(dictionaryWriter, currentActivity.Baggage);
+                        _baggageSerializer.Value.WriteObject(dictionaryWriter, currentActivity.Baggage);
                         dictionaryWriter.Flush();
                         messageHeaders.AddHeader(ServiceRemotingLoggingStrings.CorrelationContextHeaderName, ms.GetBuffer());
                     }
-                }
 
-                byte[] result = await doSendRequest().ConfigureAwait(false);
+                var result = await doSendRequest().ConfigureAwait(false);
                 return result;
             }
             catch (Exception e)

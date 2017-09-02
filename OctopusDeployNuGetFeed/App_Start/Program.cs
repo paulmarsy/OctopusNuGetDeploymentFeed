@@ -7,6 +7,7 @@ using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.OWIN;
 using OctopusDeployNuGetFeed.ServiceFabric;
+using OctopusDeployNuGetFeed.Services.AdminActor.Fabric;
 using OctopusDeployNuGetFeed.Services.NuGetFeed;
 using OctopusDeployNuGetFeed.Services.ProjectRepository;
 using OctopusDeployNuGetFeed.Services.ProjectRepository.Remote;
@@ -23,24 +24,10 @@ namespace OctopusDeployNuGetFeed
 
         public static string AppInsightsInstrumentationKey { get; internal set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(AppInsightsInstrumentationKey));
 
-        public static string Version
-        {
-            get
-            {
-                var version = Assembly.GetExecutingAssembly().GetName().Version;
-                return $"{version.Major}.{version.Minor}.{version.Build}";
-            }
-        }
 
         private static int Main(string[] args)
         {
-            if (args.Length == 1 && args[0] == "version")
-            {
-                Console.Write(Version);
-                return 0;
-            }
-
-            Container = BuildCompositionRoot();
+            Container = BuildCompositionRoot(args);
             Logger = Container.Resolve<ILogger>();
 
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) => Logger.UnhandledException(eventArgs.ExceptionObject as Exception);
@@ -48,9 +35,11 @@ namespace OctopusDeployNuGetFeed
             return Container.Resolve<IProgram>().Main(args).GetAwaiter().GetResult();
         }
 
-        private static IContainer BuildCompositionRoot()
+        private static IContainer BuildCompositionRoot(string[] args)
         {
             var builder = new ContainerBuilder();
+
+            SetProgramEntryPoint(builder, args);
 
             var appInsights = string.IsNullOrWhiteSpace(AppInsightsInstrumentationKey) ? new AppInsightsNotConfigured() : (IAppInsights) new AppInsights(AppInsightsInstrumentationKey);
             appInsights.Initialize();
@@ -63,13 +52,13 @@ namespace OctopusDeployNuGetFeed
                 builder.RegisterType<OctopusProjectRepositoryFactory>().AsSelf();
                 builder.RegisterType<RemoteReleaseRepositoryFactory>().As<IReleaseRepositoryFactory>();
                 builder.RegisterType<OctopusReleaseRepositoryFactory>().AsSelf();
-                builder.RegisterType<ServiceFabricProgram>().As<IProgram>();
+                builder.RegisterType<RemoteAdminServiceClient>().As<IAdminService>();
             }
             else
             {
                 builder.RegisterType<OctopusProjectRepositoryFactory>().As<IProjectRepositoryFactory>().AsSelf();
                 builder.RegisterType<OctopusReleaseRepositoryFactory>().As<IReleaseRepositoryFactory>().AsSelf();
-                builder.RegisterType<TopShelfProgram>().As<IProgram>();
+                builder.RegisterType<AdminService>().As<IAdminService>();
                 builder.RegisterType<ServiceWatchdog>().AsSelf();
             }
             builder.RegisterType<NuGetFeedStartup>().As<IOwinStartup>();
@@ -78,6 +67,24 @@ namespace OctopusDeployNuGetFeed
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
             return builder.Build();
+        }
+
+        private static void SetProgramEntryPoint(ContainerBuilder builder, string[] args)
+        {
+            var entryPoint = typeof(TopShelfProgram);
+            ;
+            if (IsRunningOnServiceFabric())
+                entryPoint = typeof(ServiceFabricProgram);
+
+            if (args.Length >= 1)
+            {
+                if (args[0] == "version")
+                    entryPoint = typeof(VersionProgram);
+                if (args[0] == "deploy-service-fabric")
+                    entryPoint = typeof(ServiceFabricDeploy);
+            }
+
+            builder.RegisterType(entryPoint).As<IProgram>();
         }
 
         public static bool IsRunningOnServiceFabric()

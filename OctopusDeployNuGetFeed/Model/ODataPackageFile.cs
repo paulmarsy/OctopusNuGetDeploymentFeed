@@ -17,6 +17,7 @@ namespace OctopusDeployNuGetFeed.Model
 
         [DataMember]
         public byte[] PackageBlob { get; set; }
+
         public static async Task<ODataPackageFile> FromNuGetPackage(IDownloadableNuGetPackage package)
         {
             if (package == null)
@@ -27,7 +28,7 @@ namespace OctopusDeployNuGetFeed.Model
             {
                 Id = package.Id,
                 Version = package.Version,
-                PackageBlobSize =blob.Length,
+                PackageBlobSize = blob.Length,
                 PackageBlob = blob
             };
         }

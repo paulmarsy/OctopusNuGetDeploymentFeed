@@ -38,7 +38,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             var instance = GetInstance(credential) ?? await CreateOctopusInstance(credential);
             return await instance.IsAuthenticated();
-        } 
+        }
 
         public IOctopusConnection GetConnection(OctopusCredential credential)
         {
@@ -120,7 +120,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             }
 
             public string Key => new Uri(Connection.BaseUri).Host;
-            public async Task<bool> IsAuthenticated() => await Connection.IsAuthenticated();
             public OctopusConnection Connection { get; }
             public OctopusServer Server { get; }
 
@@ -128,6 +127,11 @@ namespace OctopusDeployNuGetFeed.Octopus
             {
                 Server.Dispose();
                 Connection.Dispose();
+            }
+
+            public async Task<bool> IsAuthenticated()
+            {
+                return await Connection.IsAuthenticated();
             }
 
             public bool IsMatch(string baseUrl, string apiKey)

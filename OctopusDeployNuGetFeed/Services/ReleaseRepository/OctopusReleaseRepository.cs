@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,6 +29,25 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository
             return GetAllReleases(project.value, releases);
         }
 
+        public async Task<ODataPackage> FindLatestReleaseAsync(string projectName)
+        {
+            var project = await GetProject(projectName);
+            if (!project.exists)
+                return null;
+
+            return new ProjectPackage(project.value, await _server.GetLatestReleaseAsync(project.value), true);
+        }
+
+        public async Task<ODataPackage> GetReleaseAsync(string projectName, string version)
+        {
+            return await GetReleaseImpl(projectName, version);
+        }
+
+        public async Task<ODataPackageFile> GetPackageAsync(string projectName, string version)
+        {
+            return await ODataPackageFile.FromNuGetPackage(await GetReleaseImpl(projectName, version));
+        }
+
         private static IEnumerable<ODataPackage> GetAllReleases(ProjectResource project, IEnumerable<ReleaseResource> releases)
         {
             var isLatest = true;
@@ -40,16 +58,6 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository
             }
         }
 
-        public async Task<ODataPackage> FindLatestReleaseAsync(string projectName)
-        {
-            var project = await GetProject(projectName);
-            if (!project.exists)
-                return null;
-
-            return new ProjectPackage(project.value, await _server.GetLatestReleaseAsync(project.value), true);
-        }
-
-        public async Task<ODataPackage> GetReleaseAsync(string projectName, string version) => await GetReleaseImpl(projectName, version);
         private async Task<ReleasePackage> GetReleaseImpl(string projectName, string version)
         {
             var semver = version.ToSemanticVersion();
@@ -70,8 +78,6 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository
 
             return new ReleasePackage(_connection, _server, project.value, release, channel);
         }
-
-        public async Task<ODataPackageFile> GetPackageAsync(string projectName, string version) => await ODataPackageFile.FromNuGetPackage(await GetReleaseImpl(projectName, version));
 
         private async Task<(bool exists, ProjectResource value)> GetProject(string projectName)
         {

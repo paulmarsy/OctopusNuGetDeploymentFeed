@@ -9,9 +9,7 @@ namespace OctopusDeployNuGetFeed.Remoting
         {
             headerValue = null;
             if (!messageHeaders.TryGetHeaderValue(headerName, out byte[] headerValueBytes))
-            {
                 return false;
-            }
 
             headerValue = Encoding.UTF8.GetString(headerValueBytes);
             return true;

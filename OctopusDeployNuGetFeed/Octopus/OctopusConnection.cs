@@ -16,29 +16,14 @@ namespace OctopusDeployNuGetFeed.Octopus
         private readonly Lazy<OctopusServerEndpoint> _endpoint;
         private readonly ILogger _logger;
         private IOctopusAsyncClient _client;
-        private IOctopusAsyncRepository _repository;
         private bool? _isAuthenticated;
+        private IOctopusAsyncRepository _repository;
 
         public OctopusConnection(IAppInsights appInsights, ILogger logger, string baseUri, string apiKey)
         {
             _appInsights = appInsights;
             _logger = logger;
             _endpoint = new Lazy<OctopusServerEndpoint>(() => new OctopusServerEndpoint(baseUri, apiKey));
-        }
-
-        public async Task<bool> IsAuthenticated()
-        {
-            if (_isAuthenticated.HasValue && _isAuthenticated.Value)
-                return true;
-            try
-            {
-                _isAuthenticated = await GetRepositoryAsync("Is Authenticated", nameof(OctopusClient)) != null;
-                return _isAuthenticated.Value;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         public void Dispose()
@@ -53,7 +38,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         {
             var repo = GetRepository("Register NuGet Feed", host);
             var existingFeed = await repo.Feeds.FindOne(resource => string.Equals(resource.Name, Constants.OctopusNuGetFeedName, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                    string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
+                                                                    string.Equals(resource.Username, BaseUri, StringComparison.OrdinalIgnoreCase));
             var feed = new EnhancedNuGetFeedResource(existingFeed)
             {
                 Name = Constants.OctopusNuGetFeedName,
@@ -71,11 +56,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                 var newFeed = await repo.Feeds.Create(feed);
                 return (true, newFeed.Id);
             }
-            else
-            {
-                var updatedFeed = await repo.Feeds.Modify(feed);
-                return (false, updatedFeed.Id);
-            }
+            var updatedFeed = await repo.Feeds.Modify(feed);
+            return (false, updatedFeed.Id);
         }
 
         public IOctopusAsyncClient GetClient(string operation, string target)
@@ -83,6 +65,28 @@ namespace OctopusDeployNuGetFeed.Octopus
             StartDependencyTracking(operation, target);
             return _client ?? (_client = GetClientAsync(operation, target).GetAwaiter().GetResult());
         }
+
+        public IOctopusAsyncRepository GetRepository(string operation, string target)
+        {
+            StartDependencyTracking(operation, target);
+            return _repository ?? (_repository = new OctopusAsyncRepository(GetClient(operation, target)));
+        }
+
+        public async Task<bool> IsAuthenticated()
+        {
+            if (_isAuthenticated.HasValue && _isAuthenticated.Value)
+                return true;
+            try
+            {
+                _isAuthenticated = await GetRepositoryAsync("Is Authenticated", nameof(OctopusClient)) != null;
+                return _isAuthenticated.Value;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private async Task<IOctopusAsyncClient> GetClientAsync(string operation, string target)
         {
             StartDependencyTracking(operation, target);
@@ -95,16 +99,12 @@ namespace OctopusDeployNuGetFeed.Octopus
             _logger.Verbose(operation + ": " + target);
         }
 
-        public IOctopusAsyncRepository GetRepository(string operation, string target)
-        {
-            StartDependencyTracking(operation, target);
-            return _repository ?? (_repository = new OctopusAsyncRepository(GetClient(operation, target)));
-        }
         private async Task<IOctopusAsyncRepository> GetRepositoryAsync(string operation, string target)
         {
             StartDependencyTracking(operation, target);
             return _repository ?? (_repository = new OctopusAsyncRepository(await GetClientAsync(operation, target)));
         }
+
         public void ConfigureAppInsightsDependencyTracking()
         {
             _client.SendingOctopusRequest += ClientOnSendingOctopusRequest;

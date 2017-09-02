@@ -28,8 +28,8 @@ namespace OctopusDeployNuGetFeed.Remoting
         protected override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
         {
             FabricTelemetryInitializerExtension.SetServiceCallContext(Context);
-            
-            yield return new ServiceReplicaListener(context =>new FabricTransportServiceRemotingListener(context,new ContextServiceRemotingDispatcher<TContext>(context, this, ContextName, contextObject => _asyncLocalContext.Value = contextObject), new FabricTransportRemotingListenerSettings
+
+            yield return new ServiceReplicaListener(context => new FabricTransportServiceRemotingListener(context, new ContextServiceRemotingDispatcher<TContext>(context, this, ContextName, contextObject => _asyncLocalContext.Value = contextObject), new FabricTransportRemotingListenerSettings
             {
                 EndpointResourceName = ServiceEndpointName
             }), ServiceName);

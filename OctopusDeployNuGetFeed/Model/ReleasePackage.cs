@@ -58,7 +58,7 @@ namespace OctopusDeployNuGetFeed.Model
         {
             return await _nugetPackage.Value;
         }
-        
+
         private string GetDescriptionReleaseNotes()
         {
             return string.IsNullOrWhiteSpace(Release.ReleaseNotes)

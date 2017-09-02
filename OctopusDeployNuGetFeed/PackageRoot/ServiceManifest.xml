@@ -9,6 +9,7 @@
     <StatelessServiceType ServiceTypeName="NuGetFeedService" />
     <StatefulServiceType ServiceTypeName="OctopusProjectRepositoryService" HasPersistedState="true" />
     <StatefulServiceType ServiceTypeName="OctopusReleaseRepositoryService" HasPersistedState="true" />
+    <StatefulServiceType ServiceTypeName="AdminActorService" HasPersistedState="true" />
   </ServiceTypes>
 
   <CodePackage Name="Code" Version="1.0.0">
@@ -29,10 +30,14 @@
       <Endpoint Name="NuGetFeedServiceEndpoint" Type="Input" Protocol="http" Port="80" />
 
       <!-- Internal / Private -->
-      <Endpoint Name="OctopusProjectRepositoryServiceEndpoint" Protocol="tcp" />
-      <Endpoint Name="OctopusReleaseRepositoryServiceEndpoint" Protocol="tcp" />
+      <Endpoint Name="OctopusProjectRepositoryServiceEndpoint" />
       <Endpoint Name="OctopusProjectRepositoryServiceReplicatorEndpoint" />
+
+      <Endpoint Name="OctopusReleaseRepositoryServiceEndpoint" />
       <Endpoint Name="OctopusReleaseRepositoryServiceReplicatorEndpoint" />
+
+      <Endpoint Name="AdminActorServiceEndpoint" />
+      <Endpoint Name="AdminActorServiceReplicatorEndpoint" />
     </Endpoints>
   </Resources>
 </ServiceManifest>

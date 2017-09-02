@@ -19,7 +19,7 @@ namespace OctopusDeployNuGetFeed.Octopus
         Task<ReleaseResource> GetLatestReleaseAsync(ProjectResource project);
         void InitialisePreloader();
         void InitialisePreloader(ProjectResource project);
-        System.Threading.Tasks.Task<ProjectResource> GetProjectAsync(string name);
+        Task<ProjectResource> GetProjectAsync(string name);
         Task<IList<ReleaseResource>> GetAllReleasesAsync(ProjectResource project);
         bool ProjectExists(string projectName);
     }

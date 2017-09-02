@@ -107,7 +107,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             });
         }
 
-        public async System.Threading.Tasks.Task<ProjectResource> GetProjectAsync(string name)
+        public async Task<ProjectResource> GetProjectAsync(string name)
         {
             return await _cache.GetOrCreateAsync(CacheKey(CacheEntryType.Project, name), async entry =>
             {
@@ -147,18 +147,6 @@ namespace OctopusDeployNuGetFeed.Octopus
             return UpdateReleaseCache(project, releases).ToList();
         }
 
-        private IEnumerable<ReleaseResource> UpdateReleaseCache(ProjectResource project, IEnumerable<ReleaseResource> releases)
-        {
-            foreach (var release in releases)
-            {
-                var semver = release.Version.ToSemanticVersion();
-                if (semver == null)
-                    continue;
-
-                yield return _cache.Set(CacheKey(CacheEntryType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheEntryType.Release]);
-            }
-        }
-
         public async Task<ReleaseResource> GetReleaseAsync(ProjectResource project, SemanticVersion semver)
         {
             var updated = false;
@@ -182,7 +170,7 @@ namespace OctopusDeployNuGetFeed.Octopus
             return _cache.GetOrCreateAsync(CacheKey(CacheEntryType.NuGetPackage, project.Id, release.Id), async entry =>
             {
                 entry.SetAbsoluteExpiration(CacheTime[CacheEntryType.NuGetPackage]);
-                return await nugetPackageFactory(); 
+                return await nugetPackageFactory();
             });
         }
 
@@ -201,6 +189,18 @@ namespace OctopusDeployNuGetFeed.Octopus
                 return;
             RegisterPreloadAccess(CacheEntryType.Project, false, project.Id, project.Name);
             TimerHandler(null);
+        }
+
+        private IEnumerable<ReleaseResource> UpdateReleaseCache(ProjectResource project, IEnumerable<ReleaseResource> releases)
+        {
+            foreach (var release in releases)
+            {
+                var semver = release.Version.ToSemanticVersion();
+                if (semver == null)
+                    continue;
+
+                yield return _cache.Set(CacheKey(CacheEntryType.Release, project.Id, semver.ToNormalizedString()), release, CacheTime[CacheEntryType.Release]);
+            }
         }
 
         private void RegisterPreloadAccess(CacheEntryType type, bool updated, object state, params string[] id)
@@ -282,17 +282,17 @@ namespace OctopusDeployNuGetFeed.Octopus
                     _projectEvictionTokenSource = updatedProjectToken;
                     return null;
                 case CacheEntryType.Project:
-                    return await _octopus.GetRepository("Preload Project", key).Projects.Get((string)state);
+                    return await _octopus.GetRepository("Preload Project", key).Projects.Get((string) state);
                 case CacheEntryType.JsonDocument:
                     using (var sourceStream = await _octopus.GetClient("Preload Json Document", key).GetContent((string) state))
                     {
                         return sourceStream.ReadToEnd();
                     }
                 case CacheEntryType.Release:
-                    var castState = ((ProjectResource project, string version))state;
-                    return await  _octopus.GetRepository("Preload Release", key).Projects.GetReleaseByVersion(castState.project, castState.version);
+                    var castState = ((ProjectResource project, string version)) state;
+                    return await _octopus.GetRepository("Preload Release", key).Projects.GetReleaseByVersion(castState.project, castState.version);
                 case CacheEntryType.Channel:
-                   return await _octopus.GetRepository("Preload Channel", key).Channels.Get((string) state);
+                    return await _octopus.GetRepository("Preload Channel", key).Channels.Get((string) state);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

@@ -8,5 +8,6 @@
     <Parameter Name="OctopusReleaseRepositoryService_PartitionCount" Value="10" />
     <Parameter Name="OctopusReleaseRepositoryService_MinReplicaSetSize" Value="3" />
     <Parameter Name="OctopusReleaseRepositoryService_TargetReplicaSetSize" Value="3" />
+    <Parameter Name="AdminActorServiceActorService_PartitionCount" Value="1" />
   </Parameters>
 </Application>

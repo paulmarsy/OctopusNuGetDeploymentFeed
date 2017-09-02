@@ -150,11 +150,6 @@ namespace OctopusDeployNuGetFeed.Logging
             _telemetryClient.Context.Device.Type = "Web Connection";
         }
 
-        private void  UseFabricTelemetry()
-        {
-            TelemetryConfiguration.Active.TelemetryInitializers.Add(new FabricTelemetryInitializer());
-        }
-
         public void TrackTrace(string message, SeverityLevel severityLevel)
         {
             _telemetryClient.TrackTrace(message, severityLevel);
@@ -178,6 +173,11 @@ namespace OctopusDeployNuGetFeed.Logging
         public void TrackMetric(string name, double value)
         {
             _telemetryClient.TrackMetric(name, value);
+        }
+
+        private void UseFabricTelemetry()
+        {
+            TelemetryConfiguration.Active.TelemetryInitializers.Add(new FabricTelemetryInitializer());
         }
 
         private void UseQuickPulse()
