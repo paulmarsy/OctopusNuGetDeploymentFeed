@@ -186,6 +186,7 @@
                             "type": "IaaSDiagnostics",
                             "autoUpgradeMinorVersion": true,
                             "publisher": "AIP.Diagnostics.Test",
+                            "typeHandlerVersion": "0.0",
                             "settings": {
                               "WadCfg": {
                                 "SinksConfig": {
@@ -247,8 +248,7 @@
                                   }
                                 }
                               }
-                            },
-                            "typeHandlerVersion": "0.0"
+                            }
                           }
                         }]
                     },
