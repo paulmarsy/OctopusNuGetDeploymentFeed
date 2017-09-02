@@ -118,6 +118,9 @@
                 "name": "[parameters('virtualMachineSize')]",
                 "capacity": "[parameters('virtualMachineInstances')]"
             },
+            "dependsOn": [
+                "[concat('Microsoft.ServiceFabric/clusters', variables('fabricClusterName'))]"
+            ],
             "properties": {
                 "overprovision": false,
                 "upgradePolicy": {
@@ -236,7 +239,16 @@
                     "vmInstanceCount": "[parameters('virtualMachineInstances')]"
                 }],
                 "upgradeMode": "Automatic",
-                "vmImage": "Windows"
+                "vmImage": "Windows",
+                "fabricSettings": [
+                    {
+                        "name": "KtlLogger",
+                        "parameters": [{
+                            "name": "SharedLogSizeInMB",
+                            "value": "4096"
+                        }]
+                    }
+                ]
             }
         }
     ],

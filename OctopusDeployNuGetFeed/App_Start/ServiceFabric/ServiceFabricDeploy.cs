@@ -98,7 +98,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             File.Copy(assembly.Location, Path.Combine(codePath, Path.GetFileName(assembly.Location)));
 
             _logger.Info("Package built");
-            return packagePath;
+            return appPath;
         }
     }
 }
