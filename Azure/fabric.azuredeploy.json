@@ -118,9 +118,6 @@
                 "name": "[parameters('virtualMachineSize')]",
                 "capacity": "[parameters('virtualMachineInstances')]"
             },
-            "dependsOn": [
-                "[concat('Microsoft.ServiceFabric/clusters/', variables('fabricClusterName'))]"
-            ],
             "properties": {
                 "overprovision": false,
                 "upgradePolicy": {
@@ -162,92 +159,24 @@
                     },
                     "extensionProfile": {
                         "extensions": [{
-                                "name": "[concat(variables('vmNodeTypeName'),'_ServiceFabricNode')]",
-                                "properties": {
-                                    "type": "ServiceFabricNode",
-                                    "autoUpgradeMinorVersion": true,
-                                    "publisher": "Microsoft.Azure.ServiceFabric",
-                                    "settings": {
-                                        "clusterEndpoint": "[reference(variables('fabricClusterName')).clusterEndpoint]",
-                                        "nodeTypeRef": "[variables('vmNodeTypeName')]",
-                                        "dataPath": "D:\\\\SvcFab",
-                                        "durabilityLevel": "Bronze",
-                                        "certificate": {
-                                            "thumbprint": "[parameters('certificateThumbprint')]",
-                                            "x509StoreName": "My"
-                                        }
-                                    },
-                                    "typeHandlerVersion": "1.0"
-                                }
-                            },
-                            {
-                                "name": "[concat(variables('vmNodeTypeName'),'_VMDiagnosticsVmExt')]",
-                                "properties": {
-                                    "type": "IaaSDiagnostics",
-                                    "autoUpgradeMinorVersion": true,
-                                    "publisher": "Microsoft.Azure.Diagnostics",
-                                    "typeHandlerVersion": "1.5",
-                                    "settings": {
-                                        "WadCfg": {
-                                            "SinksConfig": {
-                                                "Sink": [{
-                                                    "name": "ApplicationInsights",
-                                                    "ApplicationInsights": "[reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value]",
-                                                    "ApplicationInsightsProfiler": "[reference(resourceId('Microsoft.Resources/deployments','common')).outputs.appInsightsKey.value]"
-                                                }]
-                                            },
-                                            "DiagnosticMonitorConfiguration": {
-                                                "overallQuotaInMB": "4096",
-                                                "sinks": "ApplicationInsights",
-                                                "DiagnosticInfrastructureLogs": {
-                                                    "scheduledTransferLogLevelFilter": "Error"
-                                                },
-                                                "WindowsEventLog": {
-                                                    "scheduledTransferPeriod": "PT1M",
-                                                    "DataSource": [{
-                                                            "name": "Application!*[System[(Level = 1) or (Level = 2)]]"
-                                                        },
-                                                        {
-                                                            "name": "Security!*[System[(Level = 1 or Level = 2)]]"
-                                                        },
-                                                        {
-                                                            "name": "System!*[System[(Level = 1 or Level = 2)]]"
-                                                        }
-                                                    ]
-                                                },
-                                                "EtwProviders": {
-                                                    "EtwEventSourceProviderConfiguration": [{
-                                                            "provider": "Microsoft-ServiceFabric-Actors",
-                                                            "scheduledTransferKeywordFilter": "1",
-                                                            "scheduledTransferPeriod": "PT5M",
-                                                            "DefaultEvents": {
-                                                                "eventDestination": "ServiceFabricReliableActorEventTable"
-                                                            }
-                                                        },
-                                                        {
-                                                            "provider": "Microsoft-ServiceFabric-Services",
-                                                            "scheduledTransferPeriod": "PT5M",
-                                                            "DefaultEvents": {
-                                                                "eventDestination": "ServiceFabricReliableServiceEventTable"
-                                                            }
-                                                        }
-                                                    ],
-                                                    "EtwManifestProviderConfiguration": [{
-                                                        "provider": "cbd93bc2-71e5-4566-b3a7-595d8eeca6e8",
-                                                        "scheduledTransferLogLevelFilter": "Information",
-                                                        "scheduledTransferKeywordFilter": "4611686018427387904",
-                                                        "scheduledTransferPeriod": "PT5M",
-                                                        "DefaultEvents": {
-                                                            "eventDestination": "ServiceFabricSystemEventTable"
-                                                        }
-                                                    }]
-                                                }
-                                            }
-                                        }
+                            "name": "[concat(variables('vmNodeTypeName'),'_ServiceFabricNode')]",
+                            "properties": {
+                                "type": "ServiceFabricNode",
+                                "autoUpgradeMinorVersion": true,
+                                "publisher": "Microsoft.Azure.ServiceFabric",
+                                "settings": {
+                                    "clusterEndpoint": "[reference(variables('fabricClusterName')).clusterEndpoint]",
+                                    "nodeTypeRef": "[variables('vmNodeTypeName')]",
+                                    "dataPath": "D:\\\\SvcFab",
+                                    "durabilityLevel": "Bronze",
+                                    "certificate": {
+                                        "thumbprint": "[parameters('certificateThumbprint')]",
+                                        "x509StoreName": "My"
                                     }
-                                }
+                                },
+                                "typeHandlerVersion": "1.0"
                             }
-                        ]
+                        }]
                     },
                     "networkProfile": {
                         "networkInterfaceConfigurations": [{
