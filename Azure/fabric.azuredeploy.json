@@ -244,10 +244,6 @@
         "ipAddress": {
             "type": "string",
             "value": "[reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value]"
-        },
-        "clusterEndpoint": {
-            "type": "string",
-            "value": "[concat('tcp://', reference('Microsoft.Resources/deployments/loadBalancer').outputs.ipAddress.value,':',variables('fabricTcpGatewayPort'))]"
         }
     }
 }
