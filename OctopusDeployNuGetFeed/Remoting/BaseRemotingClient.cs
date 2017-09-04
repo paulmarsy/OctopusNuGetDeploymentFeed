@@ -13,6 +13,7 @@ namespace OctopusDeployNuGetFeed.Remoting
 {
     public abstract class BaseRemotingClient<TService, TContext> where TService : IService
     {
+        public const string SingletonPartition = null;
         private readonly IServiceProxyFactory _serviceProxyFactory;
 
         protected BaseRemotingClient()
@@ -34,6 +35,9 @@ namespace OctopusDeployNuGetFeed.Remoting
 
         private static ServicePartitionKey GetPartitionKey(string partitionKey)
         {
+            if (partitionKey == SingletonPartition)
+                return new ServicePartitionKey();
+
             using (var hash = SHA256.Create())
             {
                 var bytes = hash.ComputeHash(Encoding.UTF8.GetBytes(partitionKey));

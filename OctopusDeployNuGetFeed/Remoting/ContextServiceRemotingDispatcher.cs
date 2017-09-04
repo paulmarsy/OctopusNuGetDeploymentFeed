@@ -35,7 +35,7 @@ namespace OctopusDeployNuGetFeed.Remoting
             {
                 base.HandleOneWay(requestContext, messageHeaders, requestBody);
                 return Task.FromResult<byte[]>(null);
-            }).Forget();
+            }).GetAwaiter().GetResult();
         }
 
         public override Task<byte[]> RequestResponseAsync(IServiceRemotingRequestContext requestContext, ServiceRemotingMessageHeaders messageHeaders, byte[] requestBody)

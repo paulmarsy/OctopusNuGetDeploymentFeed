@@ -24,7 +24,6 @@ namespace OctopusDeployNuGetFeed.Services.Watchdog
             _appInsights = appInsights;
         }
 
-
         private async Task ReportMetricsAsync(FabricClient client)
         {
             var clusterLoadInformation = await client.QueryManager.GetClusterLoadInformationAsync();
@@ -50,7 +49,7 @@ namespace OctopusDeployNuGetFeed.Services.Watchdog
             _appInsights.SetCloudContext(Context);
             var client = new FabricClient(FabricClientRole.User);
 
-            while (false == cancellationToken.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 await ReportMetricsAsync(client);
                 await ReportClusterHealthAsync(client);

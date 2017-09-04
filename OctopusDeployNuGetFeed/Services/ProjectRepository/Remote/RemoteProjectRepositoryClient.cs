@@ -19,12 +19,12 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Remote
 
         public Task<IEnumerable<ODataPackage>> GetAllProjectsAsync()
         {
-            return GetProxy(ServiceName).GetAllProjectsAsync();
+            return GetProxy(SingletonPartition).GetAllProjectsAsync();
         }
 
         public Task<bool> ExistsAsync(string projectName)
         {
-            return GetProxy(ServiceName).ExistsAsync(projectName);
+            return GetProxy(SingletonPartition).ExistsAsync(projectName);
         }
     }
 }

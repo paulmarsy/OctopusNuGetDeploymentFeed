@@ -64,7 +64,7 @@ namespace OctopusDeployNuGetFeed.Remoting
             {
                 WrappedClient.SendOneWay(messageHeaders, requestBody);
                 return Task.FromResult<byte[]>(null);
-            }).Forget();
+            }).GetAwaiter().GetResult();
         }
 
 
