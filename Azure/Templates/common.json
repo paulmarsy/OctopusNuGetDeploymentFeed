@@ -20,10 +20,7 @@
         "appInsightsName": "[concat(parameters('name'), 'AppInsights')]",
         "networkSecurityGroupName": "[concat(parameters('name'), '-NSG')]",
         "fabricHttpGatewayPort": 19080,
-        "fabricTcpGatewayPort": 19000,
-        "fabricSourceAddressPrefix": "[variables(concat(parameters('type'), 'FabricSourceAddressPrefix'))]",
-        "publicFabricSourceAddressPrefix": "*",
-        "internalFabricSourceAddressPrefix": "VirtualNetwork"
+        "fabricTcpGatewayPort": 19000
     },
     "resources": [{
             "apiVersion": "2015-05-01",
@@ -49,7 +46,7 @@
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
                         "destinationPortRange": "[parameters('appPort')]",
-                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
+                        "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
                         "priority": 100,
@@ -73,7 +70,7 @@
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
                         "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
-                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
+                        "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
                         "priority": 200,
@@ -97,7 +94,7 @@
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
                         "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
-                        "sourceAddressPrefix": "[variables('fabricSourceAddressPrefix')]",
+                        "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
                         "priority": 300,
