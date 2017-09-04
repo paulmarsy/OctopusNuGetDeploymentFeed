@@ -27,27 +27,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="PackageRoot\**" />
-    <Content Remove="PackageRoot\**" />
-    <EmbeddedResource Remove="PackageRoot\**" />
-    <None Remove="PackageRoot\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="Resources\NuPkg\deploy.config" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="deploy.config" />
-    <None Remove="deploy.ps1" />
-    <None Remove="Resources\ApplicationPackageRoot\ApplicationManifest.xml" />
-    <None Remove="Resources\Code\CustomSetupScript.bat" />
-    <None Remove="Resources\NuPkg\deploy.ps1" />
-    <None Remove="Resources\PackageRoot\Config\Settings.xml" />
-    <None Remove="Resources\PackageRoot\ServiceManifest.xml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Resources\ApplicationPackageRoot\ApplicationManifest.xml" />
     <EmbeddedResource Include="Resources\Code\CustomSetupScript.bat" />
     <EmbeddedResource Include="Resources\NuPkg\deploy.config" />
@@ -55,11 +34,7 @@
     <EmbeddedResource Include="Resources\PackageRoot\Config\Settings.xml" />
     <EmbeddedResource Include="Resources\PackageRoot\ServiceManifest.xml" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Services\ControlService\IServiceControl.cs" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="ApplicationInsights.OwinExtensions" Version="0.5.0" />
     <PackageReference Include="Autofac" Version="4.6.1" />
@@ -86,9 +61,4 @@
     <PackageReference Include="TaskScheduler" Version="2.6.0" />
     <PackageReference Include="Topshelf" Version="4.0.3" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\Watchdog\" />
-  </ItemGroup>
-
 </Project>
