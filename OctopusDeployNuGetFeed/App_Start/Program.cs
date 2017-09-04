@@ -102,6 +102,10 @@ namespace OctopusDeployNuGetFeed
             {
                 return false;
             }
+            catch (TypeInitializationException)
+            {
+                return false;
+            }
         }
     }
 }
