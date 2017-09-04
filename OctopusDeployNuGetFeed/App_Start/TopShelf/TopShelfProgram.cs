@@ -28,20 +28,9 @@ namespace OctopusDeployNuGetFeed.TopShelf
         private string ListeningAddress => $"http://{Host}:{Port}/";
 
 
-        public Task<int> Main(string[] args)
+        public Task Main(string[] args)
         {
-            return Task.FromResult((int) Run(args));
-        }
-
-        private TopshelfExitCode Run(string[] args)
-        {
-            if (args.Length == 1 && args[0] == ServiceWatchdog.ArgName)
-            {
-                _watchdog.Check();
-                return 0;
-            }
-
-            return HostFactory.Run(c =>
+            HostFactory.Run(c =>
             {
                 c.SetDescription("Octopus Deploy NuGet Deployment Feed");
                 c.SetDisplayName(nameof(OctopusDeployNuGetFeed));
@@ -67,6 +56,7 @@ namespace OctopusDeployNuGetFeed.TopShelf
                     s.WhenStopped(service => _webApiApp.Dispose());
                 });
             });
+            return Task.CompletedTask;
         }
 
         private void BeforeInstall()

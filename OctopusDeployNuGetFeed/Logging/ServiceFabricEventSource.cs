@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.Tracing;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace OctopusDeployNuGetFeed.Logging
@@ -48,49 +49,49 @@ namespace OctopusDeployNuGetFeed.Logging
         }
 
         [Event(CriticalMessageEventId, Level = EventLevel.Critical, Message = "{0}")]
-        public void Critical(string message)
+        void ILogger.Critical(string message)
         {
             if (IsEnabled())
                 WriteEvent(CriticalMessageEventId, message);
         }
 
         [Event(ErrorMessageEventId, Level = EventLevel.Error, Message = "{0}")]
-        public void Error(string message)
+        void ILogger.Error(string message)
         {
             if (IsEnabled())
                 WriteEvent(ErrorMessageEventId, message);
         }
 
         [Event(WarningMessageEventId, Level = EventLevel.Warning, Message = "{0}")]
-        public void Warning(string message)
+        void ILogger.Warning(string message)
         {
             if (IsEnabled())
                 WriteEvent(WarningMessageEventId, message);
         }
 
         [Event(VerboseMessageEventId, Level = EventLevel.Verbose, Message = "{0}")]
-        public void Verbose(string message)
+        void ILogger.Verbose(string message)
         {
             if (IsEnabled())
                 WriteEvent(VerboseMessageEventId, message);
         }
 
         [Event(InfoMessageEventId, Level = EventLevel.Informational, Message = "{0}")]
-        public void Info(string message)
+        void ILogger.Info(string message)
         {
             if (IsEnabled())
                 WriteEvent(InfoMessageEventId, message);
         }
 
         [NonEvent]
-        public void Exception(Exception exception, string callerFilePath = null, string callerMemberName = null)
+        void ILogger.Exception(Exception exception, string callerFilePath, string callerMemberName)
         {
             var callerTypeName = Path.GetFileNameWithoutExtension(callerFilePath);
             Exception(exception, $"{callerTypeName}.{callerMemberName}");
         }
 
         [NonEvent]
-        public void UnhandledException(Exception exception)
+        void ILogger.UnhandledException(Exception exception)
         {
             Exception(exception, "Unhandled Exception");
         }
@@ -126,7 +127,57 @@ namespace OctopusDeployNuGetFeed.Logging
             WriteEvent(ServiceTypeRegisteredEventId, hostProcessId, actorType);
         }
 
-        #region Keywords
+        // A pair of events sharing the same name prefix with a "Start"/"Stop" suffix implicitly marks boundaries of an event tracing activity.
+        // These activities can be automatically picked up by debugging and profiling tools, which can compute their execution time, child activities,
+        // and other statistics.
+        private const int ServiceRequestStartEventId = 5;
+
+        [Event(ServiceRequestStartEventId, Level = EventLevel.Informational, Message = "Service request '{0}' started in {1}", Keywords = Keywords.Requests)]
+        public void ServiceRequestStart(string requestTypeName, [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceRequestStartEventId, requestTypeName, method);
+        }
+
+        private const int ServiceRequestStopEventId = 6;
+
+        [Event(ServiceRequestStopEventId, Level = EventLevel.Informational, Message = "Service request '{0}' finished in {2}. {1} ",
+            Keywords = Keywords.Requests)]
+        public void ServiceRequestStop(string requestTypeName, string exception = "", [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceRequestStopEventId, requestTypeName, exception, method);
+        }
+
+        private const int ServiceTraceEventId = 7;
+
+        [Event(ServiceTraceEventId, Level = EventLevel.Verbose, Message = "Trace '{0}' in {1}. {2}", Keywords = Keywords.Traces)]
+        public void Trace(string name, string args = "", [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceTraceEventId, name, method, args);
+        }
+
+        private const int ServiceErrorEventId = 8;
+
+        [Event(ServiceErrorEventId, Level = EventLevel.Error, Message = "Error '{0}' in {1}. {2}", Keywords = Keywords.Errors)]
+        public void Error(string name, string args = "", [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceErrorEventId, name, method, args);
+        }
+
+        private const int ServiceWarningEventId = 9;
+
+        [Event(ServiceWarningEventId, Level = EventLevel.Warning, Message = "Warning '{0}' in {1}. {2}", Keywords = Keywords.Warnings)]
+        public void Warning(string name, string args = "", [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceWarningEventId, name, method, args);
+        }
+
+        private const int ServiceExceptionEventId = 10;
+
+        [Event(ServiceExceptionEventId, Level = EventLevel.Error, Message = "Exception {0} {1} in {3}. {2}", Keywords = Keywords.Exceptions)]
+        public void Exception(string exMsg, string exception, string stack, [CallerMemberName] string method = "")
+        {
+            WriteEvent(ServiceExceptionEventId, exMsg, exception, stack, method);
+        }
 
         // Event keywords can be used to categorize events. 
         // Each keyword is a bit flag. A single event can be associated with multiple keywords (via EventAttribute.Keywords property).
@@ -136,8 +187,10 @@ namespace OctopusDeployNuGetFeed.Logging
             public const EventKeywords Requests = (EventKeywords) 0x1L;
             public const EventKeywords ServiceInitialization = (EventKeywords) 0x2L;
             public const EventKeywords HostInitialization = (EventKeywords) 0x2L;
+            public const EventKeywords Exceptions = (EventKeywords) 0x04L;
+            public const EventKeywords Traces = (EventKeywords) 0x08L;
+            public const EventKeywords Errors = (EventKeywords) 0x10L;
+            public const EventKeywords Warnings = (EventKeywords) 0x20L;
         }
-
-        #endregion
     }
 }

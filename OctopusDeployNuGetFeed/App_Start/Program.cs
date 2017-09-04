@@ -26,14 +26,14 @@ namespace OctopusDeployNuGetFeed
         public static string AppInsightsInstrumentationKey { get; internal set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(AppInsightsInstrumentationKey));
 
 
-        private static int Main(string[] args)
+        public static void Main(string[] args)
         {
             Container = BuildCompositionRoot(args);
             Logger = Container.Resolve<ILogger>();
 
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) => Logger.UnhandledException(eventArgs.ExceptionObject as Exception);
 
-            return Container.Resolve<IProgram>().Main(args).GetAwaiter().GetResult();
+            Container.Resolve<IProgram>().Main(args).GetAwaiter().GetResult();
         }
 
         private static IContainer BuildCompositionRoot(string[] args)
@@ -76,7 +76,6 @@ namespace OctopusDeployNuGetFeed
         private static void SetProgramEntryPoint(ContainerBuilder builder, string[] args)
         {
             var entryPoint = typeof(TopShelfProgram);
-            ;
             if (IsRunningOnServiceFabric())
                 entryPoint = typeof(ServiceFabricProgram);
 
@@ -84,6 +83,8 @@ namespace OctopusDeployNuGetFeed
             {
                 if (args[0] == VersionProgram.Parameter)
                     entryPoint = typeof(VersionProgram);
+                if (args[0] == ServiceWatchdog.Parameter)
+                    entryPoint = typeof(ServiceWatchdog);
                 if (args[0] == ServiceFabricDeploy.Parameter)
                     entryPoint = typeof(ServiceFabricDeploy);
             }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Fabric;
+using System.Fabric.Health;
 using Microsoft.ApplicationInsights.DataContracts;
 
 namespace OctopusDeployNuGetFeed.Logging
@@ -28,7 +30,19 @@ namespace OctopusDeployNuGetFeed.Logging
         {
         }
 
+        public void TrackHealth(string healthMessage, HealthState state)
+        {
+        }
+
         public void TrackMetric(string name, double value)
+        {
+        }
+
+        public void TrackMetric(string name, int count, double sum, double min, double max, double standardDeviation)
+        {
+        }
+
+        public void SetCloudContext(ServiceContext context)
         {
         }
 

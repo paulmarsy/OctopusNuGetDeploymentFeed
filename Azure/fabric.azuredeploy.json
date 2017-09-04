@@ -233,7 +233,8 @@
                     },
                     "httpGatewayEndpointPort": "[variables('fabricHttpGatewayPort')]",
                     "isPrimary": true,
-                    "vmInstanceCount": "[parameters('virtualMachineInstances')]"
+                    "vmInstanceCount": "[parameters('virtualMachineInstances')]",
+                    "reverseProxyEndpointPort": 19081
                 }],
                 "upgradeMode": "Automatic",
                 "vmImage": "Windows",

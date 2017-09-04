@@ -17,10 +17,10 @@ namespace OctopusDeployNuGetFeed
             }
         }
 
-        public Task<int> Main(string[] args)
+        public Task Main(string[] args)
         {
             Console.Write(Version);
-            return Task.FromResult(0);
+            return Task.CompletedTask;
         }
     }
 }

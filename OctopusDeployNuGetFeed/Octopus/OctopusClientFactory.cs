@@ -58,8 +58,8 @@ namespace OctopusDeployNuGetFeed.Octopus
                 foreach (var repo in _instances.Where(repo => repo.Value.Connection.IsAuthenticated().GetAwaiter().GetResult()))
                 {
                     _appInsights.TrackMetric("MemoryCache - Approximate Size", repo.Value.Server.CacheSize);
-                    _appInsights.TrackMetric("MemoryCache - Server Entries", repo.Value.Server.CachedItems);
-                    _appInsights.TrackMetric("MemoryCache - Server Preload Entries", repo.Value.Server.PreloadCount);
+                    _appInsights.TrackMetric("MemoryCache - Cache Entries", repo.Value.Server.CachedItems);
+                    _appInsights.TrackMetric("MemoryCache - Preload Entries", repo.Value.Server.PreloadCount);
                 }
             }
             catch (Exception e)

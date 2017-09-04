@@ -23,12 +23,14 @@
         </Extension>
       </Extensions>
     </StatefulServiceType>
+    <StatefulServiceType ServiceTypeName="WatchdogService" />
   </ServiceTypes>
 
   <CodePackage Name="Code" Version="1.0.0">
     <EntryPoint>
       <ExeHost>
         <Program>OctopusDeployNuGetFeed.exe</Program>
+        <WorkingFolder>CodePackage</WorkingFolder>
       </ExeHost>
     </EntryPoint>
     <EnvironmentVariables>
@@ -36,8 +38,6 @@
     </EnvironmentVariables>
   </CodePackage>
 
-  <!-- Config package is the contents of the Config directoy under PackageRoot that contains an 
-       independently-updateable and versioned set of custom configuration settings for your service. -->
   <ConfigPackage Name="Config" Version="1.0.0" />
 
   <Resources>

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
+using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Model;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.Remoting;
@@ -16,13 +17,15 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
     {
         private readonly IProjectRepositoryFactory _factory;
         private readonly IOctopusClientFactory _octopusClientFactory;
+        private readonly IAppInsights _appInsights;
         private readonly IServiceControl _serviceControlActor;
 
 
-        public OctopusProjectRepositoryService(StatefulServiceContext serviceContext, string replicatorSettingsSectionName, IProjectRepositoryFactory factory, IOctopusClientFactory octopusClientFactory) : base(serviceContext, replicatorSettingsSectionName)
+        public OctopusProjectRepositoryService(StatefulServiceContext serviceContext, string replicatorSettingsSectionName, IProjectRepositoryFactory factory, IOctopusClientFactory octopusClientFactory, IAppInsights appInsights) : base(serviceContext, replicatorSettingsSectionName)
         {
             _factory = factory;
             _octopusClientFactory = octopusClientFactory;
+            _appInsights = appInsights;
             _serviceControlActor = ActorProxy.Create<IServiceControl>(new ActorId(nameof(OctopusDeployNuGetFeed)), FabricRuntime.GetActivationContext().ApplicationName);
         }
 
@@ -43,6 +46,12 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
             _octopusClientFactory.Decache().Wait();
         }
 
+        protected override Task RunAsync(CancellationToken cancellationToken)
+        {
+            _appInsights.SetCloudContext(Context);
+            return base.RunAsync(cancellationToken);
+        }
+
         protected override async Task OnChangeRoleAsync(ReplicaRole newRole, CancellationToken cancellationToken)
         {
             switch (newRole)
@@ -58,5 +67,6 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
                     break;
             }
         }
+        
     }
 }

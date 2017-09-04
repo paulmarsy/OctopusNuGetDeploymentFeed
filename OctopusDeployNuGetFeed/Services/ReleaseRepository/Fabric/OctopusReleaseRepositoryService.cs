@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
+using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.Model;
 using OctopusDeployNuGetFeed.Octopus;
 using OctopusDeployNuGetFeed.Remoting;
@@ -16,12 +17,14 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository.Fabric
     {
         private readonly IReleaseRepositoryFactory _factory;
         private readonly IOctopusClientFactory _octopusClientFactory;
+        private readonly IAppInsights _appInsights;
         private readonly IServiceControl _serviceControlActor;
 
-        public OctopusReleaseRepositoryService(StatefulServiceContext context, string replicatorSettingsSectionName, OctopusReleaseRepositoryFactory factory, IOctopusClientFactory octopusClientFactory) : base(context, replicatorSettingsSectionName)
+        public OctopusReleaseRepositoryService(StatefulServiceContext context, string replicatorSettingsSectionName, OctopusReleaseRepositoryFactory factory, IOctopusClientFactory octopusClientFactory, IAppInsights appInsights) : base(context, replicatorSettingsSectionName)
         {
             _factory = factory;
             _octopusClientFactory = octopusClientFactory;
+            _appInsights = appInsights;
             _serviceControlActor = ActorProxy.Create<IServiceControl>(new ActorId(nameof(OctopusDeployNuGetFeed)), FabricRuntime.GetActivationContext().ApplicationName);
         }
 
@@ -51,7 +54,11 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository.Fabric
         {
             _octopusClientFactory.Decache().Wait();
         }
-
+        protected override Task RunAsync(CancellationToken cancellationToken)
+        {
+            _appInsights.SetCloudContext(Context);
+            return base.RunAsync(cancellationToken);
+        }
         protected override async Task OnChangeRoleAsync(ReplicaRole newRole, CancellationToken cancellationToken)
         {
             switch (newRole)

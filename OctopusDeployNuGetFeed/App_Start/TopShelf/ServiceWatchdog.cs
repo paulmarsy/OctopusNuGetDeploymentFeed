@@ -4,12 +4,13 @@ using System.Reflection;
 using System.ServiceProcess;
 using Microsoft.Win32.TaskScheduler;
 using OctopusDeployNuGetFeed.Logging;
+using Task = System.Threading.Tasks.Task;
 
 namespace OctopusDeployNuGetFeed.TopShelf
 {
-    public class ServiceWatchdog
+    public class ServiceWatchdog : IProgram
     {
-        public const string ArgName = "watchdog-check";
+        public const string Parameter = "watchdog-check";
         public const string TaskName = "Octopus Deploy NuGet Feed Watchdog";
         public static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(5);
         private readonly ILogger _logger;
@@ -45,7 +46,7 @@ namespace OctopusDeployNuGetFeed.TopShelf
                 }
             });
 
-            task.Actions.Add(Assembly.GetExecutingAssembly().Location, ArgName);
+            task.Actions.Add(Assembly.GetExecutingAssembly().Location, Parameter);
 
             TaskService.Instance.RootFolder.RegisterTaskDefinition(TaskName, task);
             _logger.Info("Scheduled Task has been created.");
@@ -60,7 +61,7 @@ namespace OctopusDeployNuGetFeed.TopShelf
             }
         }
 
-        public void Check()
+        public Task Main(string[] args)
         {
             try
             {
@@ -68,12 +69,12 @@ namespace OctopusDeployNuGetFeed.TopShelf
                 if (service == null)
                 {
                     _logger.Error("Watchdog.Check: Service Does Not Exist!");
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 _logger.Info($"Watchdog.Check: Service is {service.Status}");
                 if (service.Status == ServiceControllerStatus.Running || service.Status == ServiceControllerStatus.StartPending)
-                    return;
+                    return Task.CompletedTask;
 
                 _logger.Warning("Service is not running! Starting...");
                 service.Start();
@@ -84,6 +85,7 @@ namespace OctopusDeployNuGetFeed.TopShelf
             {
                 _logger.Exception(e);
             }
+            return Task.CompletedTask;
         }
     }
 }

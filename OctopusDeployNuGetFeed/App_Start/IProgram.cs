@@ -4,6 +4,6 @@ namespace OctopusDeployNuGetFeed
 {
     public interface IProgram
     {
-        Task<int> Main(string[] args);
+        Task Main(string[] args);
     }
 }

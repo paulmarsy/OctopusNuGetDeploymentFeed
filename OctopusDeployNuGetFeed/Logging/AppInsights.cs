@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
+using System.Fabric;
+using System.Fabric.Health;
 using System.IO;
-using System.Reflection;
 using ApplicationInsights.OwinExtensions;
 using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.EventSourceListener;
 using Microsoft.ApplicationInsights.Extensibility;
@@ -75,6 +77,50 @@ namespace OctopusDeployNuGetFeed.Logging
         public AppInsights(string instrumentationKey)
         {
             _instrumentationKey = instrumentationKey;
+        }
+
+        public void TrackAvailability(string name, DateTimeOffset timeStamp, TimeSpan duration, string runLocation, bool success, string message = null)
+        {
+            _telemetryClient.TrackAvailability(name, timeStamp, duration, runLocation, success, message);
+        }
+
+        public void TrackHealth(string healthMessage, HealthState state)
+        {
+            _telemetryClient.TrackTrace(healthMessage, GetSeverityLevel(state));
+        }
+
+        private static SeverityLevel GetSeverityLevel(HealthState state)
+        {
+            switch (state)
+            {
+                case HealthState.Warning:
+                case HealthState.Invalid:
+                case HealthState.Unknown:
+                    return SeverityLevel.Warning;
+                case HealthState.Ok:
+                    return SeverityLevel.Information;
+                case HealthState.Error:
+                    return SeverityLevel.Error;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(state), state, null);
+            }
+        }
+
+        public void SetCloudContext(ServiceContext context)
+        {
+            _telemetryClient.Context.Cloud.RoleName = context.ServiceName.AbsoluteUri;
+            _telemetryClient.Context.Cloud.RoleInstance = context.ReplicaOrInstanceId.ToString();
+            _telemetryClient.Context.Device.Id = context.NodeContext.IPAddressOrFQDN;
+            _telemetryClient.Context.Device.Type = context.NodeContext.NodeType;
+        }
+ 
+
+       
+        public void TrackMetric(string name, int count, double sum, double min, double max, double standardDeviation)
+        {
+            var mt = new MetricTelemetry(name, count, sum, min, max, standardDeviation);
+
+            _telemetryClient.TrackMetric(mt);
         }
 
         public void Critical(string message)
@@ -148,10 +194,7 @@ namespace OctopusDeployNuGetFeed.Logging
             {
                 InstrumentationKey = _instrumentationKey
             };
-            _telemetryClient.Context.Component.Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            _telemetryClient.Context.Device.Id = Environment.MachineName;
-            _telemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.VersionString;
-            _telemetryClient.Context.Device.Type = "Web Connection";
+            _telemetryClient.Context.Component.Version = VersionProgram.Version;
         }
 
         public void TrackTrace(string message, SeverityLevel severityLevel)
