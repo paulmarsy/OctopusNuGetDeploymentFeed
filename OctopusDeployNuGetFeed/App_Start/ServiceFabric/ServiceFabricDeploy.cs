@@ -21,6 +21,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
         private const string ApplicationManifestName = "ApplicationManifest.xml";
         private const string ServiceManifestName = "ServiceManifest.xml";
         private const string SettingsName = "Settings.xml";
+        private const string CustomSetupScript = "CustomSetupScript.bat";
         public const string Parameter = "deploy-service-fabric";
         private static readonly Uri ApplicationName = new Uri($"fabric:/{ApplicationTypeName}");
         private readonly ILogger _logger;
@@ -59,7 +60,8 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             _logger.Info($"Setting Application Insights Instrumentation Key: {props.appInsightsKey}");
             await fabricClient.ApplicationManager.CreateApplicationAsync(new ApplicationDescription(ApplicationName, ApplicationTypeName, "1.0.0", new NameValueCollection
             {
-                {"OctopusDeployNuGetFeed_AppInsightsKey", props.appInsightsKey}
+                {"OctopusDeployNuGetFeed_AppInsightsKey", props.appInsightsKey},
+                {"OctopusDeployNuGetFeed_EncodedCustomDeployScript", props.customDeployScript}
             }));
 
             _logger.Info("Create application succeeded. Waiting for services...");
@@ -85,12 +87,16 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             return ready;
         }
 
-        private static (string endpoint, string certThumbprint, string appInsightsKey) ParseProperties(string[] args)
+        private static (string endpoint, string certThumbprint, string appInsightsKey, string customDeployScript) ParseProperties(string[] args)
         {
-            if (args.Length != 4)
-                throw new ArgumentException($"Invalid command line syntax ({string.Join(" ", args)}). Command line format: {Path.GetFileName(Assembly.GetExecutingAssembly().Location)} {Parameter} <Cluster Endpoint FQDN> <Cluster Certificate Thumbprint> <App Insights Key>");
+            if (args.Length != 4 && args.Length != 5)
+                throw new ArgumentException($"Invalid command line syntax ({string.Join(" ", args)}). Command line format: {Path.GetFileName(Assembly.GetExecutingAssembly().Location)} {Parameter} <Cluster Endpoint FQDN> <Cluster Certificate Thumbprint> <App Insights Key> [Encoded Custom Deploy Script]");
 
-            return (endpoint: args[1], certThumbprint: args[2], appInsightsKey: args[3]);
+            var customDeployScript = string.Empty;
+            if (args.Length == 5)
+                customDeployScript = args[4];
+
+            return (endpoint: args[1], certThumbprint: args[2], appInsightsKey: args[3], customDeployScript: customDeployScript);
         }
 
         private static X509Credentials GetCredentials(string name, string clientCertThumb, string serverCertThumb)
@@ -139,6 +145,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
             var codePath = Path.Combine(svcPath, "Code");
             Directory.CreateDirectory(codePath);
+            File.WriteAllText(Path.Combine(codePath, CustomSetupScript), GetResource(assembly, CustomSetupScript));
             File.Copy(assembly.Location, Path.Combine(codePath, Path.GetFileName(assembly.Location)));
 
             _logger.Info("Package built");

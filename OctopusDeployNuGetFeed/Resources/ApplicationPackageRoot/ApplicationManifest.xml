@@ -5,6 +5,7 @@
                      xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="OctopusDeployNuGetFeed_AppInsightsKey" DefaultValue="" />
+    <Parameter Name="OctopusDeployNuGetFeed_EncodedCustomDeployScript" DefaultValue="" />
     <Parameter Name="NuGetFeedService_InstanceCount" DefaultValue="-1" />
     <Parameter Name="OctopusReleaseRepositoryService_PartitionCount" DefaultValue="10" />
     <Parameter Name="MinReplicaSetSize" DefaultValue="1" />
@@ -15,6 +16,8 @@
     <EnvironmentOverrides CodePackageRef="Code">
       <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey"
                            Value="[OctopusDeployNuGetFeed_AppInsightsKey]" />
+      <EnvironmentVariable Name="OctopusDeployNuGetFeedEncodedCustomDeployScript"
+                           Value="OctopusDeployNuGetFeed_EncodedCustomDeployScript"/>
     </EnvironmentOverrides>
   </ServiceManifestImport>
   <DefaultServices>

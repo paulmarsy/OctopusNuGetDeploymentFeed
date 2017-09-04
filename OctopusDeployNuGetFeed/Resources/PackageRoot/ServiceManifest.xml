@@ -27,6 +27,12 @@
   </ServiceTypes>
 
   <CodePackage Name="Code" Version="1.0.0">
+    <SetupEntryPoint>
+      <ExeHost>
+        <Program>CustomSetupScript.bat</Program>
+        <WorkingFolder>CodePackage</WorkingFolder>
+      </ExeHost>
+    </SetupEntryPoint>
     <EntryPoint>
       <ExeHost>
         <Program>OctopusDeployNuGetFeed.exe</Program>
@@ -35,6 +41,7 @@
     </EntryPoint>
     <EnvironmentVariables>
       <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey" Value="" />
+      <EnvironmentVariable Name="OctopusDeployNuGetFeedEncodedCustomDeployScript" Value="" />
     </EnvironmentVariables>
   </CodePackage>
 
