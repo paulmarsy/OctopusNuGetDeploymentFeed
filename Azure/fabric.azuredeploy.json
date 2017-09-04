@@ -77,8 +77,8 @@
                     "appPort": {
                         "value": "[variables('appPort')]"
                     },
-                    "type": {
-                        "value": "[parameters('type')]"
+                    "httpSourceAddressPrefix": {
+                        "value": "loadBalancer"
                     }
                 }
             }
