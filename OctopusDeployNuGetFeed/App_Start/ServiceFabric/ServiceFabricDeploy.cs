@@ -33,6 +33,34 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
         public async Task Main(string[] args)
         {
+            var attempts = 0;
+            var success = false;
+            while (!success)
+            {
+                try
+                {
+                    attempts++;
+                    await ExecuteDeploy(args);
+                    success = true;
+                }
+                catch (Exception e)
+                {
+                    _logger.Exception(e);
+                    if (attempts < 4)
+                    {
+                        _logger.Warning($"Retrying, attempt {attempts} of 3, waiting 3 minutes...");
+                        await Task.Delay(TimeSpan.FromMinutes(3));
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private async Task ExecuteDeploy(string[] args)
+        {
             var props = ParseProperties(args);
             var packagePath = CreateApplicationPackage();
 
