@@ -10,15 +10,21 @@ using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Services.Watchdog
 {
-   
-    public  class WatchdogService : StatefulService
+    public class WatchdogService : StatefulService
     {
-   
-        
         private readonly IAppInsights _appInsights;
-        
 
-      
+        public WatchdogService(StatefulServiceContext serviceContext, IAppInsights appInsights) : base(serviceContext)
+        {
+            _appInsights = appInsights;
+        }
+
+        public WatchdogService(StatefulServiceContext serviceContext, IReliableStateManagerReplica reliableStateManagerReplica, IAppInsights appInsights) : base(serviceContext, reliableStateManagerReplica)
+        {
+            _appInsights = appInsights;
+        }
+
+
         private async Task ReportMetricsAsync(FabricClient client)
         {
             var clusterLoadInformation = await client.QueryManager.GetClusterLoadInformationAsync();
@@ -42,26 +48,15 @@ namespace OctopusDeployNuGetFeed.Services.Watchdog
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
             _appInsights.SetCloudContext(Context);
-        var    client = new FabricClient(FabricClientRole.User);
+            var client = new FabricClient(FabricClientRole.User);
 
             while (false == cancellationToken.IsCancellationRequested)
             {
-              
-            await     ReportMetricsAsync(client);
-         await         ReportClusterHealthAsync(client);
-                
+                await ReportMetricsAsync(client);
+                await ReportClusterHealthAsync(client);
+
                 await Task.Delay(TimeSpan.FromMinutes(15), cancellationToken);
             }
-        }
-
-        public WatchdogService(StatefulServiceContext serviceContext, IAppInsights appInsights) : base(serviceContext)
-        {
-            _appInsights = appInsights;
-        }
-
-        public WatchdogService(StatefulServiceContext serviceContext, IReliableStateManagerReplica reliableStateManagerReplica, IAppInsights appInsights) : base(serviceContext, reliableStateManagerReplica)
-        {
-            _appInsights = appInsights;
         }
     }
 }

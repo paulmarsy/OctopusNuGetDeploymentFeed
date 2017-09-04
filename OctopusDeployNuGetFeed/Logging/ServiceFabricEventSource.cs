@@ -34,6 +34,21 @@ namespace OctopusDeployNuGetFeed.Logging
         private const int ServiceHostInitializationFailedEventId = 4;
 
         private const int ActorTypeRegisteredEventId = 5;
+
+        // A pair of events sharing the same name prefix with a "Start"/"Stop" suffix implicitly marks boundaries of an event tracing activity.
+        // These activities can be automatically picked up by debugging and profiling tools, which can compute their execution time, child activities,
+        // and other statistics.
+        private const int ServiceRequestStartEventId = 5;
+
+        private const int ServiceRequestStopEventId = 6;
+
+        private const int ServiceTraceEventId = 7;
+
+        private const int ServiceErrorEventId = 8;
+
+        private const int ServiceWarningEventId = 9;
+
+        private const int ServiceExceptionEventId = 10;
         public static readonly ServiceFabricEventSource Current = new ServiceFabricEventSource();
 
         static ServiceFabricEventSource()
@@ -127,18 +142,11 @@ namespace OctopusDeployNuGetFeed.Logging
             WriteEvent(ServiceTypeRegisteredEventId, hostProcessId, actorType);
         }
 
-        // A pair of events sharing the same name prefix with a "Start"/"Stop" suffix implicitly marks boundaries of an event tracing activity.
-        // These activities can be automatically picked up by debugging and profiling tools, which can compute their execution time, child activities,
-        // and other statistics.
-        private const int ServiceRequestStartEventId = 5;
-
         [Event(ServiceRequestStartEventId, Level = EventLevel.Informational, Message = "Service request '{0}' started in {1}", Keywords = Keywords.Requests)]
         public void ServiceRequestStart(string requestTypeName, [CallerMemberName] string method = "")
         {
             WriteEvent(ServiceRequestStartEventId, requestTypeName, method);
         }
-
-        private const int ServiceRequestStopEventId = 6;
 
         [Event(ServiceRequestStopEventId, Level = EventLevel.Informational, Message = "Service request '{0}' finished in {2}. {1} ",
             Keywords = Keywords.Requests)]
@@ -147,15 +155,11 @@ namespace OctopusDeployNuGetFeed.Logging
             WriteEvent(ServiceRequestStopEventId, requestTypeName, exception, method);
         }
 
-        private const int ServiceTraceEventId = 7;
-
         [Event(ServiceTraceEventId, Level = EventLevel.Verbose, Message = "Trace '{0}' in {1}. {2}", Keywords = Keywords.Traces)]
         public void Trace(string name, string args = "", [CallerMemberName] string method = "")
         {
             WriteEvent(ServiceTraceEventId, name, method, args);
         }
-
-        private const int ServiceErrorEventId = 8;
 
         [Event(ServiceErrorEventId, Level = EventLevel.Error, Message = "Error '{0}' in {1}. {2}", Keywords = Keywords.Errors)]
         public void Error(string name, string args = "", [CallerMemberName] string method = "")
@@ -163,15 +167,11 @@ namespace OctopusDeployNuGetFeed.Logging
             WriteEvent(ServiceErrorEventId, name, method, args);
         }
 
-        private const int ServiceWarningEventId = 9;
-
         [Event(ServiceWarningEventId, Level = EventLevel.Warning, Message = "Warning '{0}' in {1}. {2}", Keywords = Keywords.Warnings)]
         public void Warning(string name, string args = "", [CallerMemberName] string method = "")
         {
             WriteEvent(ServiceWarningEventId, name, method, args);
         }
-
-        private const int ServiceExceptionEventId = 10;
 
         [Event(ServiceExceptionEventId, Level = EventLevel.Error, Message = "Exception {0} {1} in {3}. {2}", Keywords = Keywords.Exceptions)]
         public void Exception(string exMsg, string exception, string stack, [CallerMemberName] string method = "")

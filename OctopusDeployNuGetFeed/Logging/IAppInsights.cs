@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Fabric;
 using System.Fabric.Health;
-using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 
 namespace OctopusDeployNuGetFeed.Logging

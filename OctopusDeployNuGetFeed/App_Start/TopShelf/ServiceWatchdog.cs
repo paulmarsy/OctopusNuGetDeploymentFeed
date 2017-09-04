@@ -20,6 +20,33 @@ namespace OctopusDeployNuGetFeed.TopShelf
             _logger = logger;
         }
 
+        public Task Main(string[] args)
+        {
+            try
+            {
+                var service = ServiceController.GetServices().SingleOrDefault(controller => string.Equals(controller.ServiceName, nameof(OctopusDeployNuGetFeed)));
+                if (service == null)
+                {
+                    _logger.Error("Watchdog.Check: Service Does Not Exist!");
+                    return Task.CompletedTask;
+                }
+
+                _logger.Info($"Watchdog.Check: Service is {service.Status}");
+                if (service.Status == ServiceControllerStatus.Running || service.Status == ServiceControllerStatus.StartPending)
+                    return Task.CompletedTask;
+
+                _logger.Warning("Service is not running! Starting...");
+                service.Start();
+                service.Refresh();
+                _logger.Info($"Service is {service.Status}, it will be checked again in {CheckInterval:g}");
+            }
+            catch (Exception e)
+            {
+                _logger.Exception(e);
+            }
+            return Task.CompletedTask;
+        }
+
         public void CreateTask()
         {
             _logger.Info($"Creating Scheduled Task: {TaskName}");
@@ -59,33 +86,6 @@ namespace OctopusDeployNuGetFeed.TopShelf
                 taskService.RootFolder.DeleteTask(TaskName, false);
                 _logger.Info($"Scheduled Task Deleted: {TaskName}");
             }
-        }
-
-        public Task Main(string[] args)
-        {
-            try
-            {
-                var service = ServiceController.GetServices().SingleOrDefault(controller => string.Equals(controller.ServiceName, nameof(OctopusDeployNuGetFeed)));
-                if (service == null)
-                {
-                    _logger.Error("Watchdog.Check: Service Does Not Exist!");
-                    return Task.CompletedTask;
-                }
-
-                _logger.Info($"Watchdog.Check: Service is {service.Status}");
-                if (service.Status == ServiceControllerStatus.Running || service.Status == ServiceControllerStatus.StartPending)
-                    return Task.CompletedTask;
-
-                _logger.Warning("Service is not running! Starting...");
-                service.Start();
-                service.Refresh();
-                _logger.Info($"Service is {service.Status}, it will be checked again in {CheckInterval:g}");
-            }
-            catch (Exception e)
-            {
-                _logger.Exception(e);
-            }
-            return Task.CompletedTask;
         }
     }
 }

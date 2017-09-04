@@ -15,9 +15,9 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository.Fabric
 {
     public class OctopusReleaseRepositoryService : BaseRemotingService<OctopusCredential>, IReleaseRepository, IServiceControlEvents
     {
+        private readonly IAppInsights _appInsights;
         private readonly IReleaseRepositoryFactory _factory;
         private readonly IOctopusClientFactory _octopusClientFactory;
-        private readonly IAppInsights _appInsights;
         private readonly IServiceControl _serviceControlActor;
 
         public OctopusReleaseRepositoryService(StatefulServiceContext context, string replicatorSettingsSectionName, OctopusReleaseRepositoryFactory factory, IOctopusClientFactory octopusClientFactory, IAppInsights appInsights) : base(context, replicatorSettingsSectionName)
@@ -54,11 +54,13 @@ namespace OctopusDeployNuGetFeed.Services.ReleaseRepository.Fabric
         {
             _octopusClientFactory.Decache().Wait();
         }
+
         protected override Task RunAsync(CancellationToken cancellationToken)
         {
             _appInsights.SetCloudContext(Context);
             return base.RunAsync(cancellationToken);
         }
+
         protected override async Task OnChangeRoleAsync(ReplicaRole newRole, CancellationToken cancellationToken)
         {
             switch (newRole)

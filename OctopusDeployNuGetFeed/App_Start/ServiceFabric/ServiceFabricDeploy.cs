@@ -21,8 +21,8 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
         private const string ApplicationManifestName = "ApplicationManifest.xml";
         private const string ServiceManifestName = "ServiceManifest.xml";
         private const string SettingsName = "Settings.xml";
-        private static readonly Uri ApplicationName = new Uri($"fabric:/{ApplicationTypeName}");
         public const string Parameter = "deploy-service-fabric";
+        private static readonly Uri ApplicationName = new Uri($"fabric:/{ApplicationTypeName}");
         private readonly ILogger _logger;
 
         public ServiceFabricDeploy(ILogger logger)

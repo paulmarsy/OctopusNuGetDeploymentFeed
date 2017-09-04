@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.ApplicationInsights.ServiceFabric;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
-using Microsoft.ServiceFabric.WatchdogService;
 using OctopusDeployNuGetFeed.Logging;
 using OctopusDeployNuGetFeed.OWIN;
 
@@ -16,8 +15,8 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric
     /// </summary>
     public sealed class NuGetFeedService : StatelessService
     {
-        private readonly IOwinStartup _startup;
         private readonly IAppInsights _appInsights;
+        private readonly IOwinStartup _startup;
 
         public NuGetFeedService(StatelessServiceContext context, IOwinStartup startup, IAppInsights appInsights)
             : base(context)
@@ -25,11 +24,13 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed.Fabric
             _startup = startup;
             _appInsights = appInsights;
         }
+
         protected override Task RunAsync(CancellationToken cancellationToken)
         {
             _appInsights.SetCloudContext(Context);
             return base.RunAsync(cancellationToken);
         }
+
         /// <summary>
         ///     Optional override to create listeners (e.g., TCP, HTTP) for this service replica to handle client or user requests.
         /// </summary>

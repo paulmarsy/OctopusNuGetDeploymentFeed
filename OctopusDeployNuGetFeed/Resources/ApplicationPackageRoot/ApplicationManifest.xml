@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="OctopusDeployNuGetFeed" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                     ApplicationTypeName="OctopusDeployNuGetFeed" ApplicationTypeVersion="1.0.0"
+                     xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="OctopusDeployNuGetFeed_AppInsightsKey" DefaultValue="" />
     <Parameter Name="NuGetFeedService_InstanceCount" DefaultValue="-1" />
@@ -10,7 +13,8 @@
   <ServiceManifestImport>
     <ServiceManifestRef ServiceManifestName="OctopusDeployNuGetFeed" ServiceManifestVersion="1.0.0" />
     <EnvironmentOverrides CodePackageRef="Code">
-      <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey" Value="[OctopusDeployNuGetFeed_AppInsightsKey]" />
+      <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey"
+                           Value="[OctopusDeployNuGetFeed_AppInsightsKey]" />
     </EnvironmentOverrides>
   </ServiceManifestImport>
   <DefaultServices>
@@ -20,22 +24,27 @@
       </StatelessService>
     </Service>
     <Service Name="OctopusProjectRepositoryService">
-      <StatefulService ServiceTypeName="OctopusProjectRepositoryService" TargetReplicaSetSize="[TargetReplicaSetSize]" MinReplicaSetSize="[MinReplicaSetSize]">
+      <StatefulService ServiceTypeName="OctopusProjectRepositoryService" TargetReplicaSetSize="[TargetReplicaSetSize]"
+                       MinReplicaSetSize="[MinReplicaSetSize]">
         <SingletonPartition />
       </StatefulService>
     </Service>
     <Service Name="OctopusReleaseRepositoryService">
-      <StatefulService ServiceTypeName="OctopusReleaseRepositoryService" TargetReplicaSetSize="[TargetReplicaSetSize]" MinReplicaSetSize="[MinReplicaSetSize]">
-        <UniformInt64Partition PartitionCount="[OctopusReleaseRepositoryService_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
+      <StatefulService ServiceTypeName="OctopusReleaseRepositoryService" TargetReplicaSetSize="[TargetReplicaSetSize]"
+                       MinReplicaSetSize="[MinReplicaSetSize]">
+        <UniformInt64Partition PartitionCount="[OctopusReleaseRepositoryService_PartitionCount]"
+                               LowKey="-9223372036854775808" HighKey="9223372036854775807" />
       </StatefulService>
     </Service>
     <Service Name="ServiceControlActorService" GeneratedIdRef="bf088e80-b976-4143-a3b4-0500d9093489|None">
-      <StatefulService ServiceTypeName="ServiceControlActorServiceType" TargetReplicaSetSize="[TargetReplicaSetSize]" MinReplicaSetSize="[MinReplicaSetSize]">
+      <StatefulService ServiceTypeName="ServiceControlActorServiceType" TargetReplicaSetSize="[TargetReplicaSetSize]"
+                       MinReplicaSetSize="[MinReplicaSetSize]">
         <UniformInt64Partition PartitionCount="1" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
       </StatefulService>
     </Service>
     <Service Name="WatchdogService">
-      <StatefulService ServiceTypeName="WatchdogService" TargetReplicaSetSize="[TargetReplicaSetSize]" MinReplicaSetSize="[MinReplicaSetSize]">
+      <StatefulService ServiceTypeName="WatchdogService" TargetReplicaSetSize="[TargetReplicaSetSize]"
+                       MinReplicaSetSize="[MinReplicaSetSize]">
         <SingletonPartition />
       </StatefulService>
     </Service>

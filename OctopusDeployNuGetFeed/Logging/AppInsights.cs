@@ -7,7 +7,6 @@ using System.Fabric.Health;
 using System.IO;
 using ApplicationInsights.OwinExtensions;
 using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.EventSourceListener;
 using Microsoft.ApplicationInsights.Extensibility;
@@ -79,31 +78,9 @@ namespace OctopusDeployNuGetFeed.Logging
             _instrumentationKey = instrumentationKey;
         }
 
-        public void TrackAvailability(string name, DateTimeOffset timeStamp, TimeSpan duration, string runLocation, bool success, string message = null)
-        {
-            _telemetryClient.TrackAvailability(name, timeStamp, duration, runLocation, success, message);
-        }
-
         public void TrackHealth(string healthMessage, HealthState state)
         {
             _telemetryClient.TrackTrace(healthMessage, GetSeverityLevel(state));
-        }
-
-        private static SeverityLevel GetSeverityLevel(HealthState state)
-        {
-            switch (state)
-            {
-                case HealthState.Warning:
-                case HealthState.Invalid:
-                case HealthState.Unknown:
-                    return SeverityLevel.Warning;
-                case HealthState.Ok:
-                    return SeverityLevel.Information;
-                case HealthState.Error:
-                    return SeverityLevel.Error;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(state), state, null);
-            }
         }
 
         public void SetCloudContext(ServiceContext context)
@@ -113,9 +90,8 @@ namespace OctopusDeployNuGetFeed.Logging
             _telemetryClient.Context.Device.Id = context.NodeContext.IPAddressOrFQDN;
             _telemetryClient.Context.Device.Type = context.NodeContext.NodeType;
         }
- 
 
-       
+
         public void TrackMetric(string name, int count, double sum, double min, double max, double standardDeviation)
         {
             var mt = new MetricTelemetry(name, count, sum, min, max, standardDeviation);
@@ -220,6 +196,28 @@ namespace OctopusDeployNuGetFeed.Logging
         public void TrackMetric(string name, double value)
         {
             _telemetryClient.TrackMetric(name, value);
+        }
+
+        public void TrackAvailability(string name, DateTimeOffset timeStamp, TimeSpan duration, string runLocation, bool success, string message = null)
+        {
+            _telemetryClient.TrackAvailability(name, timeStamp, duration, runLocation, success, message);
+        }
+
+        private static SeverityLevel GetSeverityLevel(HealthState state)
+        {
+            switch (state)
+            {
+                case HealthState.Warning:
+                case HealthState.Invalid:
+                case HealthState.Unknown:
+                    return SeverityLevel.Warning;
+                case HealthState.Ok:
+                    return SeverityLevel.Information;
+                case HealthState.Error:
+                    return SeverityLevel.Error;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(state), state, null);
+            }
         }
 
         private void UseFabricTelemetry()

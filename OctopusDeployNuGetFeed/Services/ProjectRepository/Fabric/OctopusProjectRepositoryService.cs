@@ -15,9 +15,9 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
 {
     public class OctopusProjectRepositoryService : BaseRemotingService<OctopusCredential>, IProjectRepository, IServiceControlEvents
     {
+        private readonly IAppInsights _appInsights;
         private readonly IProjectRepositoryFactory _factory;
         private readonly IOctopusClientFactory _octopusClientFactory;
-        private readonly IAppInsights _appInsights;
         private readonly IServiceControl _serviceControlActor;
 
 
@@ -67,6 +67,5 @@ namespace OctopusDeployNuGetFeed.Services.ProjectRepository.Fabric
                     break;
             }
         }
-        
     }
 }

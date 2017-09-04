@@ -11,25 +11,25 @@ namespace OctopusDeployNuGetFeed.OWIN
 {
     internal class OwinCommunicationListener : ICommunicationListener
     {
+        private readonly string _endpointName;
         private readonly ServiceContext _serviceContext;
         private readonly IOwinStartup _startup;
-        private readonly string _endpointName;
-        
-        private IDisposable _webApp;
-        private string _publishAddress;
         private string _listeningAddress;
-        
+        private string _publishAddress;
+
+        private IDisposable _webApp;
+
         public OwinCommunicationListener(ServiceContext serviceContext, IOwinStartup startup, string endpointName)
         {
             _serviceContext = serviceContext;
             _startup = startup;
             _endpointName = endpointName;
         }
-        
+
         public Task<string> OpenAsync(CancellationToken cancellationToken)
         {
             var serviceEndpoint = _serviceContext.CodePackageActivationContext.GetEndpoint(_endpointName);
-       
+
             _listeningAddress = $"{serviceEndpoint.Protocol.ToString().ToLowerInvariant()}://+:{serviceEndpoint.Port}/";
 
             if (_serviceContext is StatefulServiceContext)
@@ -69,19 +69,17 @@ namespace OctopusDeployNuGetFeed.OWIN
             StopWebServer();
         }
 
-      
 
         private void StopWebServer()
         {
-                try
-                {
-                    _webApp?.Dispose();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // no-op
-                }
+            try
+            {
+                _webApp?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // no-op
+            }
         }
-        
     }
 }

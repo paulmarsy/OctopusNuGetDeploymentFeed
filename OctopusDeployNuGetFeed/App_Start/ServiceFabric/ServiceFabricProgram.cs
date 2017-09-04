@@ -19,8 +19,8 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 {
     public class ServiceFabricProgram : IProgram
     {
-        private readonly IOctopusClientFactory _octopusClientFactory;
         private readonly IAppInsights _appInsights;
+        private readonly IOctopusClientFactory _octopusClientFactory;
         private readonly OctopusProjectRepositoryFactory _octopusProjectRepositoryFactory;
         private readonly OctopusReleaseRepositoryFactory _octopusReleaseRepositoryFactory;
         private readonly IOwinStartup _startup;
