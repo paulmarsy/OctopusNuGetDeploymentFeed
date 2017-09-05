@@ -109,7 +109,7 @@ namespace OctopusDeployNuGetFeed.Model
 </package>");
                     AddPackageFile(zipArchive, "deploy.ps1", DeployPs1);
                     AddPackageFile(zipArchive, "deploy.config", DeployConfig);
-                    AddPackageFile(zipArchive, "connection.json", JsonConvert.SerializeObject(Connection, Formatting.Indented));
+                    AddPackageFile(zipArchive, "server.json", JsonConvert.SerializeObject(Connection, Formatting.Indented));
                     AddPackageFile(zipArchive, "project.json", await Server.GetJsonAsync(Project));
                     AddPackageFile(zipArchive, "channel.json", await Server.GetJsonAsync(Channel));
                     AddPackageFile(zipArchive, "release.json", await Server.GetJsonAsync(Release));
