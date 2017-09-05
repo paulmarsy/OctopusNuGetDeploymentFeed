@@ -4,25 +4,20 @@ using System.Fabric.Health;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.ServiceFabric.Data;
 using Microsoft.ServiceFabric.Services.Runtime;
 using OctopusDeployNuGetFeed.Logging;
 
 namespace OctopusDeployNuGetFeed.Services.Watchdog
 {
-    public class WatchdogService : StatefulService
+    public class WatchdogService : StatelessService
     {
         private readonly IAppInsights _appInsights;
 
-        public WatchdogService(StatefulServiceContext serviceContext, IAppInsights appInsights) : base(serviceContext)
+        public WatchdogService(StatelessServiceContext serviceContext, IAppInsights appInsights) : base(serviceContext)
         {
             _appInsights = appInsights;
         }
 
-        public WatchdogService(StatefulServiceContext serviceContext, IReliableStateManagerReplica reliableStateManagerReplica, IAppInsights appInsights) : base(serviceContext, reliableStateManagerReplica)
-        {
-            _appInsights = appInsights;
-        }
 
         private async Task ReportMetricsAsync(FabricClient client)
         {
@@ -47,7 +42,7 @@ namespace OctopusDeployNuGetFeed.Services.Watchdog
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
             _appInsights.SetCloudContext(Context);
-            var client = new FabricClient(FabricClientRole.User);
+            var client = new FabricClient();
 
             while (!cancellationToken.IsCancellationRequested)
             {

@@ -17,8 +17,11 @@
       <EnvironmentVariable Name="OctopusDeployNuGetFeedAppInsightsInstrumentationKey"
                            Value="[OctopusDeployNuGetFeed_AppInsightsKey]" />
       <EnvironmentVariable Name="OctopusDeployNuGetFeedEncodedCustomDeployScript"
-                           Value="OctopusDeployNuGetFeed_EncodedCustomDeployScript"/>
+                           Value="[OctopusDeployNuGetFeed_EncodedCustomDeployScript]" />
     </EnvironmentOverrides>
+    <Policies>
+      <RunAsPolicy CodePackageRef="Code" UserRef="SetupLocalSystem" EntryPointType="Setup" />
+    </Policies>
   </ServiceManifestImport>
   <DefaultServices>
     <Service Name="NuGetFeedService">
@@ -46,10 +49,14 @@
       </StatefulService>
     </Service>
     <Service Name="WatchdogService">
-      <StatefulService ServiceTypeName="WatchdogService" TargetReplicaSetSize="[TargetReplicaSetSize]"
-                       MinReplicaSetSize="[MinReplicaSetSize]">
+      <StatelessService ServiceTypeName="WatchdogService" InstanceCount="1">
         <SingletonPartition />
-      </StatefulService>
+      </StatelessService>
     </Service>
   </DefaultServices>
+  <Principals>
+    <Users>
+      <User Name="SetupLocalSystem" AccountType="LocalSystem" />
+    </Users>
+  </Principals>
 </ApplicationManifest>

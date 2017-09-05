@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
-    <AssemblyVersion>3.0.3.0</AssemblyVersion>
-    <FileVersion>3.0.3.0</FileVersion>
+    <AssemblyVersion>3.0.4.0</AssemblyVersion>
+    <FileVersion>3.0.4.0</FileVersion>
     <Authors>Paul Marston</Authors>
     <Product>Octopus Deploy - NuGet Deployment Feed</Product>
     <Description>Octopus Deploy - NuGet Deployment Feed</Description>
@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\ApplicationPackageRoot\ApplicationManifest.xml" />
-    <EmbeddedResource Include="Resources\Code\CustomSetupScript.bat" />
+    <EmbeddedResource Include="Resources\Code\Setup.bat" />
     <EmbeddedResource Include="Resources\NuPkg\deploy.config" />
     <EmbeddedResource Include="Resources\NuPkg\deploy.ps1" />
     <EmbeddedResource Include="Resources\PackageRoot\Config\Settings.xml" />

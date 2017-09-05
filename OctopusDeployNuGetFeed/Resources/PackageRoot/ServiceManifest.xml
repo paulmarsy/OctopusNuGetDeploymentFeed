@@ -23,13 +23,13 @@
         </Extension>
       </Extensions>
     </StatefulServiceType>
-    <StatefulServiceType ServiceTypeName="WatchdogService" />
+    <StatelessServiceType ServiceTypeName="WatchdogService" />
   </ServiceTypes>
 
   <CodePackage Name="Code" Version="1.0.0">
     <SetupEntryPoint>
       <ExeHost>
-        <Program>CustomSetupScript.bat</Program>
+        <Program>Setup.bat</Program>
         <WorkingFolder>CodePackage</WorkingFolder>
       </ExeHost>
     </SetupEntryPoint>

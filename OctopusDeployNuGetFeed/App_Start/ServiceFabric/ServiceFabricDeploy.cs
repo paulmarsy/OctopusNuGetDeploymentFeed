@@ -21,7 +21,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
         private const string ApplicationManifestName = "ApplicationManifest.xml";
         private const string ServiceManifestName = "ServiceManifest.xml";
         private const string SettingsName = "Settings.xml";
-        private const string CustomSetupScript = "CustomSetupScript.bat";
+        private const string SetupScript = "Setup.bat";
         public const string Parameter = "deploy-service-fabric";
         private static readonly Uri ApplicationName = new Uri($"fabric:/{ApplicationTypeName}");
         private readonly ILogger _logger;
@@ -33,34 +33,9 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
         public async Task Main(string[] args)
         {
-            var attempts = 0;
-            var success = false;
-            while (!success)
-            {
-                try
-                {
-                    attempts++;
-                    await ExecuteDeploy(args);
-                    success = true;
-                }
-                catch (Exception e)
-                {
-                    _logger.Exception(e);
-                    if (attempts < 4)
-                    {
-                        _logger.Warning($"Retrying, attempt {attempts} of 3, waiting 3 minutes...");
-                        await Task.Delay(TimeSpan.FromMinutes(3));
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-        }
+            if (!Program.IsServiceFabricSdkKeyInRegistry())
+                throw new Exception("Could not find the Azure Service Fabric SDK on this server. This SDK is required before running Service Fabric commands.");
 
-        private async Task ExecuteDeploy(string[] args)
-        {
             var props = ParseProperties(args);
             var packagePath = CreateApplicationPackage();
 
@@ -86,6 +61,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
             _logger.Info("Creating application...");
             _logger.Info($"Setting Application Insights Instrumentation Key: {props.appInsightsKey}");
+            _logger.Info($"Setting Encoded Custom Deploy Script: {props.customDeployScript}");
             await fabricClient.ApplicationManager.CreateApplicationAsync(new ApplicationDescription(ApplicationName, ApplicationTypeName, "1.0.0", new NameValueCollection
             {
                 {"OctopusDeployNuGetFeed_AppInsightsKey", props.appInsightsKey},
@@ -107,9 +83,9 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
             foreach (var service in await fabricClient.QueryManager.GetServiceListAsync(ApplicationName))
             {
                 var partitions = await fabricClient.QueryManager.GetPartitionListAsync(service.ServiceName);
-                var readyPartitions = partitions.Where(partition => partition.PartitionStatus == ServicePartitionStatus.Ready);
-                _logger.Info($"{service.ServiceTypeName} {service.ServiceStatus}. Health: {service.HealthState}. {readyPartitions.Count()} of {partitions.Count} partitions ready.");
-                if (service.ServiceStatus != ServiceStatus.Active || service.HealthState != HealthState.Ok)
+                var readyPartitions = partitions.Where(partition => partition.PartitionStatus == ServicePartitionStatus.Ready).ToList();
+                _logger.Info($"{service.ServiceTypeName} {service.ServiceStatus}. Health: {service.HealthState}. {readyPartitions.Count} of {partitions.Count} partitions ready.");
+                if (service.ServiceStatus != ServiceStatus.Active || service.HealthState != HealthState.Ok || readyPartitions.Count != partitions.Count)
                     ready = false;
             }
             return ready;
@@ -173,7 +149,7 @@ namespace OctopusDeployNuGetFeed.ServiceFabric
 
             var codePath = Path.Combine(svcPath, "Code");
             Directory.CreateDirectory(codePath);
-            File.WriteAllText(Path.Combine(codePath, CustomSetupScript), GetResource(assembly, CustomSetupScript));
+            File.WriteAllText(Path.Combine(codePath, SetupScript), GetResource(assembly, SetupScript));
             File.Copy(assembly.Location, Path.Combine(codePath, Path.GetFileName(assembly.Location)));
 
             _logger.Info("Package built");
