@@ -83,7 +83,7 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed
 
         private static Task<bool> ShouldTrackRequest(IOwinContext owinContext)
         {
-            return Task.FromResult(string.Equals(owinContext.Request.Uri.AbsolutePath, "/lbprobe", StringComparison.OrdinalIgnoreCase) &&
+            return Task.FromResult(!string.Equals(owinContext.Request.Uri.AbsolutePath, "/lbprobe", StringComparison.OrdinalIgnoreCase) &&
                                    owinContext.Response.StatusCode != 401); // Avoid tracing '401 Forbidden' otherwise 50% of all requests show as failed requests
         }
 
