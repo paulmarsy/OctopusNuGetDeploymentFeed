@@ -215,8 +215,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 210,
-                            "direction": "Inbound",
-                            "comments": "allow port used by the fabric client (includes powershell)"
+                            "direction": "Inbound"
                         }
                     }, {
                         "name": "Fabric-Public-HttpGateway",
@@ -228,8 +227,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 220,
-                            "direction": "Inbound",
-                            "comments": "allow port used to access the fabric cluster web portal"
+                            "direction": "Inbound"
                         }
                     }, {
                         "name": "Fabric-Internal-SMB",
@@ -242,8 +240,7 @@
                             "protocol": "*",
                             "sourceAddressPrefix": "VirtualNetwork",
                             "sourcePortRange": "*"
-                        },
-                        "comments": "allow SMB traffic within the net, used by fabric to move packages around"
+                        }
                     },
                     {
                         "name": "Fabric-Internal-Cluster",
@@ -256,8 +253,7 @@
                             "protocol": "*",
                             "sourceAddressPrefix": "VirtualNetwork",
                             "sourcePortRange": "*"
-                        },
-                        "comments": "allow ports within vnet that are used by the fabric to talk between nodes"
+                        }
                     },
                     {
                         "name": "Fabric-Internal-Ephemeral",
@@ -270,8 +266,7 @@
                             "protocol": "*",
                             "sourceAddressPrefix": "VirtualNetwork",
                             "sourcePortRange": "*"
-                        },
-                        "comments": "allow fabric ephemeral ports within the vnet"
+                        }
                     },
                     {
                         "name": "Fabric-Internal-Application",
@@ -284,8 +279,7 @@
                             "protocol": "*",
                             "sourceAddressPrefix": "VirtualNetwork",
                             "sourcePortRange": "*"
-                        },
-                        "comments": "allow fabric application ports within the vnet"
+                        }
                     },
                     {
                         "name": "BlockAll",
