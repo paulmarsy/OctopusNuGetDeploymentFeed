@@ -31,10 +31,7 @@
             "subnets": [{
                 "name": "[variables('virtualNetworkSubnetName')]",
                 "properties": {
-                    "addressPrefix": "[variables('subnetPrefix')]",
-                    "networkSecurityGroup": {
-                        "id": "[parameters('networkSecurityGroupResouceId')]"
-                    }
+                    "addressPrefix": "[variables('subnetPrefix')]"
                 }
             }]
         }

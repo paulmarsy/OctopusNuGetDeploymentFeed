@@ -238,7 +238,7 @@
                             "direction": "Inbound",
                             "priority": 310,
                             "protocol": "*",
-                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourceAddressPrefix": "*",
                             "sourcePortRange": "*"
                         }
                     },
@@ -251,7 +251,7 @@
                             "direction": "Inbound",
                             "priority": 320,
                             "protocol": "*",
-                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourceAddressPrefix": "*",
                             "sourcePortRange": "*"
                         }
                     },
@@ -264,7 +264,7 @@
                             "direction": "Inbound",
                             "priority": 330,
                             "protocol": "*",
-                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourceAddressPrefix": "*",
                             "sourcePortRange": "*"
                         }
                     },
@@ -276,19 +276,6 @@
                             "destinationPortRange": "[concat(variables('fabricApplicationStartPort'), '-', variables('fabricApplicationEndPort'))]",
                             "direction": "Inbound",
                             "priority": 340,
-                            "protocol": "*",
-                            "sourceAddressPrefix": "VirtualNetwork",
-                            "sourcePortRange": "*"
-                        }
-                    },
-                    {
-                        "name": "BlockAll",
-                        "properties": {
-                            "access": "Deny",
-                            "destinationAddressPrefix": "*",
-                            "destinationPortRange": "*",
-                            "direction": "Inbound",
-                            "priority": 999,
                             "protocol": "*",
                             "sourceAddressPrefix": "*",
                             "sourcePortRange": "*"
