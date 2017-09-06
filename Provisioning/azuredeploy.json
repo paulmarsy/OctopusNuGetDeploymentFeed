@@ -42,6 +42,10 @@
         "loadBalancerName": "[concat(parameters('namePrefix'), 'LoadBalancer')]",
         "fabricTcpGatewayPort": 19000,
         "fabricHttpGatewayPort": 19080,
+        "fabricApplicationStartPort": 20000,
+        "fabricApplicationEndPort": 30000,
+        "fabricEphemeralStartPort": 49152,
+        "fabricEphemeralEndPort": 65534,
         "appPort": 80,
         "networkSecurityGroupName": "[concat(parameters('namePrefix'), 'NSG')]",
         "vmNodeTypeName": "OctopusDeployNuGetFeed"
@@ -184,42 +188,113 @@
             "location": "[resourceGroup().location]",
             "properties": {
                 "securityRules": [{
-                    "name": "HTTP",
-                    "properties": {
-                        "protocol": "Tcp",
-                        "sourcePortRange": "*",
-                        "destinationPortRange": "[variables('appPort')]",
-                        "sourceAddressPrefix": "AzureLoadBalancer",
-                        "destinationAddressPrefix": "*",
-                        "access": "Allow",
-                        "priority": 100,
-                        "direction": "Inbound"
+                        "name": "HTTP",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[variables('appPort')]",
+                            "sourceAddressPrefix": "AzureLoadBalancer",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }, {
+                        "name": "Fabric-Public-TcpGateway",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
+                            "sourceAddressPrefix": "AzureLoadBalancer",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 210,
+                            "direction": "Inbound",
+                            "comments": "allow port used by the fabric client (includes powershell)"
+                        }
+                    }, {
+                        "name": "Fabric-Public-HttpGateway",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
+                            "sourceAddressPrefix": "AzureLoadBalancer",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 220,
+                            "direction": "Inbound",
+                            "comments": "allow port used to access the fabric cluster web portal"
+                        }
+                    }, {
+                        "name": "Fabric-Internal-SMB",
+                        "properties": {
+                            "access": "Allow",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "445",
+                            "direction": "Inbound",
+                            "priority": 310,
+                            "protocol": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourcePortRange": "*"
+                        },
+                        "comments": "allow SMB traffic within the net, used by fabric to move packages around"
+                    },
+                    {
+                        "name": "Fabric-Internal-Cluster",
+                        "properties": {
+                            "access": "Allow",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "1025-1027",
+                            "direction": "Inbound",
+                            "priority": 320,
+                            "protocol": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourcePortRange": "*"
+                        },
+                        "comments": "allow ports within vnet that are used by the fabric to talk between nodes"
+                    },
+                    {
+                        "name": "Fabric-Internal-Ephemeral",
+                        "properties": {
+                            "access": "Allow",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "[concat(variables('fabricEphemeralStartPort'), '-', variables('fabricEphemeralEndPort'))]",
+                            "direction": "Inbound",
+                            "priority": 330,
+                            "protocol": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourcePortRange": "*"
+                        },
+                        "comments": "allow fabric ephemeral ports within the vnet"
+                    },
+                    {
+                        "name": "Fabric-Internal-Application",
+                        "properties": {
+                            "access": "Allow",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "[concat(variables('fabricApplicationStartPort'), '-', variables('fabricApplicationEndPort'))]",
+                            "direction": "Inbound",
+                            "priority": 340,
+                            "protocol": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "sourcePortRange": "*"
+                        },
+                        "comments": "allow fabric application ports within the vnet"
+                    },
+                    {
+                        "name": "BlockAll",
+                        "properties": {
+                            "access": "Deny",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "*",
+                            "direction": "Inbound",
+                            "priority": 999,
+                            "protocol": "*",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*"
+                        }
                     }
-                }, {
-                    "name": "FabricTcpGateway",
-                    "properties": {
-                        "protocol": "Tcp",
-                        "sourcePortRange": "*",
-                        "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
-                        "sourceAddressPrefix": "AzureLoadBalancer",
-                        "destinationAddressPrefix": "*",
-                        "access": "Allow",
-                        "priority": 200,
-                        "direction": "Inbound"
-                    }
-                }, {
-                    "name": "FabricHttpGateway",
-                    "properties": {
-                        "protocol": "Tcp",
-                        "sourcePortRange": "*",
-                        "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
-                        "sourceAddressPrefix": "AzureLoadBalancer",
-                        "destinationAddressPrefix": "*",
-                        "access": "Allow",
-                        "priority": 300,
-                        "direction": "Inbound"
-                    }
-                }]
+                ]
             }
         }, {
             "type": "Microsoft.Compute/virtualMachineScaleSets",
@@ -339,14 +414,14 @@
                 "nodeTypes": [{
                     "name": "[variables('vmNodeTypeName')]",
                     "applicationPorts": {
-                        "endPort": 30000,
-                        "startPort": 20000
+                        "endPort": "[variables('fabricApplicationEndPort')]",
+                        "startPort": "[variables('fabricApplicationStartPort')]"
                     },
                     "clientConnectionEndpointPort": "[variables('fabricTcpGatewayPort')]",
                     "durabilityLevel": "Bronze",
                     "ephemeralPorts": {
-                        "endPort": 65534,
-                        "startPort": 49152
+                        "endPort": "[variables('fabricEphemeralEndPort')]",
+                        "startPort": "[variables('fabricEphemeralStartPort')]"
                     },
                     "httpGatewayEndpointPort": "[variables('fabricHttpGatewayPort')]",
                     "isPrimary": true,
