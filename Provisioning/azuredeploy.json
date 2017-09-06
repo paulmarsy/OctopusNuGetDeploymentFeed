@@ -1,0 +1,387 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string"
+        },
+        "virtualMachineInstances": {
+            "type": "string"
+        },
+        "virtualMachineSize": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "securestring"
+        },
+        "existingVnetSubnetResourceId": {
+            "type": "string",
+            "defaultValue": "CreateNew"
+        },
+        "keyVaultResourceId": {
+            "type": "string"
+        },
+        "certificateUrl": {
+            "type": "string"
+        },
+        "certificateThumbprint": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "templateRootUri": "https://raw.githubusercontent.com/paulmarsy/OctopusNuGetDeploymentFeed/master/Provisioning/",
+        "vnetTemplate": "[variables(concat('vnetTemplateName', equals(toLower(parameters('existingVnetSubnetResourceId')), 'createnew')))]",
+        "vnetTemplateNameTrue": "virtualnetwork.new.json",
+        "vnetTemplateNameFalse": "virtualnetwork.existing.json",
+        "appInsightsName": "[concat(parameters('namePrefix'), 'AppInsights')]",
+        "publicIPName": "[concat(parameters('namePrefix'), 'PublicIP')]",
+        "fabricClusterName": "[concat(parameters('namePrefix'), 'Cluster')]",
+        "loadBalancerName": "[concat(parameters('namePrefix'), 'LoadBalancer')]",
+        "fabricTcpGatewayPort": 19000,
+        "fabricHttpGatewayPort": 19080,
+        "appPort": 80,
+        "networkSecurityGroupName": "[concat(parameters('namePrefix'), 'NSG')]",
+        "vmNodeTypeName": "OctopusDeployNuGetFeed"
+    },
+    "resources": [{
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "name": "virtualNetwork",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templateRootUri'), variables('vnetTemplate'))]"
+                },
+                "parameters": {
+                    "existingVnetSubnetResourceId": {
+                        "value": "[parameters('existingVnetSubnetResourceId')]"
+                    }
+                }
+            }
+        }, {
+            "apiVersion": "2015-05-01",
+            "name": "[variables('appInsightsName')]",
+            "type": "Microsoft.Insights/components",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ApplicationId": "[parameters('namePrefix')]",
+                "Application_Type": "web",
+                "Flow_Type": "Bluefield",
+                "Request_Source": "rest"
+            }
+        }, {
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[toLower(parameters('namePrefix'))]"
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "name": "[variables('loadBalancerName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIpName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [{
+                    "name": "LoadBalancerIPConfig",
+                    "properties": {
+                        "publicIPAddress": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+                        }
+                    }
+                }],
+                "backendAddressPools": [{
+                    "name": "LoadBalancerBEAddressPool"
+                }],
+                "loadBalancingRules": [{
+                    "name": "HTTP",
+                    "properties": {
+                        "frontendIPConfiguration": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerIPConfig')]"
+                        },
+                        "backendAddressPool": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/LoadBalancerBEAddressPool')]"
+                        },
+                        "probe": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/HttpProbe')]"
+                        },
+                        "protocol": "Tcp",
+                        "frontendPort": "[variables('appPort')]",
+                        "backendPort": "[variables('appPort')]"
+                    }
+                }, {
+                    "name": "FabricTcpGateway",
+                    "properties": {
+                        "frontendIPConfiguration": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerIPConfig')]"
+                        },
+                        "backendAddressPool": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/LoadBalancerBEAddressPool')]"
+                        },
+                        "probe": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/FabricTcpGatewayProbe')]"
+                        },
+                        "protocol": "Tcp",
+                        "frontendPort": "[variables('fabricTcpGatewayPort')]",
+                        "backendPort": "[variables('fabricTcpGatewayPort')]"
+                    }
+                }, {
+                    "name": "FabricHttpGateway",
+                    "properties": {
+                        "frontendIPConfiguration": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIpConfigurations/LoadBalancerIPConfig')]"
+                        },
+                        "backendAddressPool": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/backendAddressPools/LoadBalancerBEAddressPool')]"
+                        },
+                        "probe": {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/probes/FabricHttpGatewayProbe')]"
+                        },
+                        "protocol": "Tcp",
+                        "frontendPort": "[variables('fabricHttpGatewayPort')]",
+                        "backendPort": "[variables('fabricHttpGatewayPort')]"
+                    }
+                }],
+                "probes": [{
+                        "name": "HttpProbe",
+                        "properties": {
+                            "protocol": "Http",
+                            "port": "[variables('appPort')]",
+                            "requestPath": "/lbprobe"
+                        }
+                    }, {
+                        "name": "FabricTcpGatewayProbe",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": "[variables('fabricTcpGatewayPort')]"
+                        }
+                    },
+                    {
+                        "name": "FabricHttpGatewayProbe",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": "[variables('fabricHttpGatewayPort')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[variables('networkSecurityGroupName')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2017-06-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [{
+                    "name": "HTTP",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('appPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 100,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricTcpGateway",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricTcpGatewayPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 200,
+                        "direction": "Inbound"
+                    }
+                }, {
+                    "name": "FabricHttpGateway",
+                    "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[variables('fabricHttpGatewayPort')]",
+                        "sourceAddressPrefix": "AzureLoadBalancer",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 300,
+                        "direction": "Inbound"
+                    }
+                }]
+            }
+        }, {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('vmNodeTypeName')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2017-03-30",
+            "sku": {
+                "name": "[parameters('virtualMachineSize')]",
+                "capacity": "[parameters('virtualMachineInstances')]"
+            },
+            "properties": {
+                "overprovision": false,
+                "upgradePolicy": {
+                    "mode": "Automatic"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "imageReference": {
+                            "publisher": "MicrosoftWindowsServer",
+                            "offer": "WindowsServer",
+                            "sku": "2016-Datacenter-Server-Core-smalldisk",
+                            "version": "latest"
+                        },
+                        "osDisk": {
+                            "createOption": "FromImage",
+                            "caching": "ReadWrite",
+                            "managedDisk": {
+                                "storageAccountType": "Standard_LRS"
+                            }
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "SvcFab",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "windowsConfiguration": {
+                            "enableAutomaticUpdates": true,
+                            "provisionVMAgent": true
+                        },
+                        "secrets": [{
+                            "sourceVault": {
+                                "id": "[parameters('keyVaultResourceId')]"
+                            },
+                            "vaultCertificates": [{
+                                "certificateStore": "My",
+                                "certificateUrl": "[parameters('certificateUrl')]"
+                            }]
+                        }]
+                    },
+                    "extensionProfile": {
+                        "extensions": [{
+                            "name": "[concat(variables('vmNodeTypeName'),'_ServiceFabricNode')]",
+                            "properties": {
+                                "type": "ServiceFabricNode",
+                                "autoUpgradeMinorVersion": true,
+                                "publisher": "Microsoft.Azure.ServiceFabric",
+                                "settings": {
+                                    "clusterEndpoint": "[reference(variables('fabricClusterName')).clusterEndpoint]",
+                                    "nodeTypeRef": "[variables('vmNodeTypeName')]",
+                                    "dataPath": "D:\\\\SvcFab",
+                                    "durabilityLevel": "Bronze",
+                                    "enableParallelJobs": true,
+                                    "certificate": {
+                                        "thumbprint": "[parameters('certificateThumbprint')]",
+                                        "x509StoreName": "My"
+                                    }
+                                },
+                                "typeHandlerVersion": "1.0"
+                            }
+                        }]
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [{
+                            "name": "SvcFabNIC",
+                            "properties": {
+                                "primary": true,
+                                "ipConfigurations": [{
+                                    "name": "SvcFabNICIPConfig",
+                                    "properties": {
+                                        "subnet": {
+                                            "id": "[reference('Microsoft.Resources/deployments/virtualNetwork').outputs.subnetRef.value]"
+                                        },
+                                        "loadBalancerLoadBalancerBEAddressPoolAddressPools": [{
+                                            "id": "[concat('Microsoft.Network/loadBalancers', variables('loadBalancerName'), '/backendAddressPools/LoadBalancerBEAddressPool')]"
+                                        }]
+                                    }
+                                }]
+                            },
+                            "networkSecurityGroup": {
+                                "id": "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
+                            }
+                        }]
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2016-09-01",
+            "type": "Microsoft.ServiceFabric/clusters",
+            "name": "[variables('fabricClusterName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addonFeatures": [
+                    "DnsService",
+                    "RepairManager"
+                ],
+                "certificate": {
+                    "thumbprint": "[parameters('certificateThumbprint')]",
+                    "x509StoreName": "My"
+                },
+                "clientCertificateThumbprints": [{
+                    "certificateThumbprint": "[parameters('certificateThumbprint')]",
+                    "isAdmin": true
+                }],
+                "clusterState": "Default",
+                "managementEndpoint": "[concat('https://',reference(variables('publicIPName')).dnsSettings.fqdn,':',variables('fabricHttpGatewayPort'))]",
+                "nodeTypes": [{
+                    "name": "[variables('vmNodeTypeName')]",
+                    "applicationPorts": {
+                        "endPort": 30000,
+                        "startPort": 20000
+                    },
+                    "clientConnectionEndpointPort": "[variables('fabricTcpGatewayPort')]",
+                    "durabilityLevel": "Bronze",
+                    "ephemeralPorts": {
+                        "endPort": 65534,
+                        "startPort": 49152
+                    },
+                    "httpGatewayEndpointPort": "[variables('fabricHttpGatewayPort')]",
+                    "isPrimary": true,
+                    "vmInstanceCount": "[parameters('virtualMachineInstances')]"
+                }],
+                "upgradeMode": "Automatic",
+                "vmImage": "Windows",
+                "fabricSettings": [{
+                    "name": "KtlLogger",
+                    "parameters": [{
+                        "name": "SharedLogSizeInMB",
+                        "value": "4096"
+                    }]
+                }, {
+                    "name": "Security",
+                    "parameters": [{
+                        "name": "ClusterProtectionLevel",
+                        "value": "EncryptAndSign"
+                    }]
+                }]
+            }
+        }
+    ],
+    "outputs": {
+        "clusterProperties": {
+            "value": "[reference(variables('fabricClusterName'))]",
+            "type": "object"
+        },
+        "publicFqdn": {
+            "type": "string",
+            "value": "[reference(variables('publicIPName')).dnsSettings.fqdn]"
+        },
+        "appInsightsKey": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), providers('Microsoft.Insights', 'components').apiVersions[0]).InstrumentationKey]"
+        }
+    }
+}
