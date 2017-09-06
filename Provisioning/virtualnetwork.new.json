@@ -4,6 +4,9 @@
     "parameters": {
         "existingVnetSubnetResourceId": {
             "type": "string"
+        },
+        "networkSecurityGroupResouceId": {
+            "type": "string"
         }
     },
     "variables": {
@@ -28,7 +31,10 @@
             "subnets": [{
                 "name": "[variables('virtualNetworkSubnetName')]",
                 "properties": {
-                    "addressPrefix": "[variables('subnetPrefix')]"
+                    "addressPrefix": "[variables('subnetPrefix')]",
+                    "networkSecurityGroup": {
+                        "id": "[parameters('networkSecurityGroupResouceId')]"
+                    }
                 }
             }]
         }

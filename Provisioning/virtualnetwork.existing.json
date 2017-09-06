@@ -4,6 +4,9 @@
     "parameters": {
         "existingVnetSubnetResourceId": {
             "type": "string"
+        },
+        "networkSecurityGroupResouceId": {
+            "type": "string"
         }
     },
     "resources": [],

@@ -54,6 +54,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2016-09-01",
             "name": "virtualNetwork",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
@@ -62,6 +65,9 @@
                 "parameters": {
                     "existingVnetSubnetResourceId": {
                         "value": "[parameters('existingVnetSubnetResourceId')]"
+                    },
+                    "networkSecurityGroupResouceId": {
+                        "value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
                     }
                 }
             }
