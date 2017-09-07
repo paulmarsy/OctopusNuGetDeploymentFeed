@@ -150,7 +150,7 @@ enum GuidedFailure {
     Enabled
     Disabled
     RetryIgnore
-    RetryAbort
+    RetryFail
     Ignore
     RetryDeployment
 }
@@ -215,7 +215,7 @@ class DeploymentContext {
             ([GuidedFailure]::Enabled) { $true }
             ([GuidedFailure]::Disabled) { $false }
             ([GuidedFailure]::RetryIgnore) { $true }
-            ([GuidedFailure]::RetryAbort) { $true }
+            ([GuidedFailure]::RetryFail) { $true }
             ([GuidedFailure]::Ignore) { $true } 
             ([GuidedFailure]::RetryDeployment) { $false }
         }
@@ -227,7 +227,7 @@ class DeploymentContext {
             ([GuidedFailure]::Enabled) { $null }
             ([GuidedFailure]::Disabled) { $null }
             ([GuidedFailure]::RetryIgnore) { $retryActions + @('Ignore') }
-            ([GuidedFailure]::RetryAbort) { $retryActions + @('Abort') }
+            ([GuidedFailure]::RetryFail) { $retryActions + @('Fail') }
             ([GuidedFailure]::Ignore) { @('Ignore') }
             ([GuidedFailure]::RetryDeployment) { $null }
         }
@@ -712,7 +712,7 @@ Show-Heading 'Configuring Deployment'
 $deploymentContext.GetDeploymentTemplate()
 $email = if (Test-String $OctopusParameters['Octopus.Deployment.CreatedBy.EmailAddress']) { "($($OctopusParameters['Octopus.Deployment.CreatedBy.EmailAddress']))" }
 $guidedFailureMessage = Get-OctopusSetting GuidedFailureMessage @"
-Automatic Failure Guidance will #{GuidedFailureAction} (Failure ###{GuidedFailureActionIndex})
+Automatic Failure Guidance will #{GuidedFailureAction} (Failure ##{GuidedFailureActionIndex})
 Initiated by $($OctopusParameters['Octopus.Deployment.Name']) of $($OctopusParameters['Octopus.Project.Name']) release $($OctopusParameters['Octopus.Release.Number'])
 Created By: $($OctopusParameters['Octopus.Deployment.CreatedBy.DisplayName']) $email
 ${Chain_BaseUrl}$($OctopusParameters['Octopus.Web.DeploymentLink'])
