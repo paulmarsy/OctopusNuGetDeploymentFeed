@@ -21,20 +21,16 @@ namespace OctopusDeployNuGetFeed
 {
     public class Program
     {
-        public static IContainer Container { get; private set; }
-        public static ILogger Logger { get; private set; }
-
         public static string AppInsightsInstrumentationKey { get; internal set; } = Environment.GetEnvironmentVariable(nameof(OctopusDeployNuGetFeed) + nameof(AppInsightsInstrumentationKey));
-
 
         public static void Main(string[] args)
         {
-            Container = BuildCompositionRoot(args);
-            Logger = Container.Resolve<ILogger>();
+            var container = BuildCompositionRoot(args);
 
-            AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) => Logger.UnhandledException(eventArgs.ExceptionObject as Exception);
+            AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) => container.Resolve<ILogger>().UnhandledException(eventArgs.ExceptionObject as Exception);
+            ExtensionMethods.Logger = container.Resolve<ILogger>();
 
-            Container.Resolve<IProgram>().Main(args).GetAwaiter().GetResult();
+            container.Resolve<IProgram>().Main(args).GetAwaiter().GetResult();
         }
 
         private static IContainer BuildCompositionRoot(string[] args)
@@ -67,6 +63,7 @@ namespace OctopusDeployNuGetFeed
 
                 builder.RegisterType<ServiceWatchdog>().AsSelf();
             }
+            builder.RegisterType<BasicAuthentication>().AsSelf();
             builder.RegisterType<NuGetFeedStartup>().As<IOwinStartup>();
 
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());

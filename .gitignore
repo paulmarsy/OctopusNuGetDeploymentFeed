@@ -12,3 +12,5 @@
 
 packages/*
 .DS_Store
+
+lib/Octopus.Core.dll

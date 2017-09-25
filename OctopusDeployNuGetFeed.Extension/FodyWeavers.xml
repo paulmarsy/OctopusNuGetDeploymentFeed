@@ -1,0 +1,7 @@
+<Weavers>
+  <Costura>
+    <ExcludeAssemblies>
+      Octopus.Core
+    </ExcludeAssemblies>
+  </Costura>
+</Weavers>

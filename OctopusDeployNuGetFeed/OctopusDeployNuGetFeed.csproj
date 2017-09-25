@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
-    <AssemblyVersion>3.1.0.0</AssemblyVersion>
-    <FileVersion>3.1.0.0</FileVersion>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <FileVersion>3.2.0.0</FileVersion>
     <Authors>Paul Marston</Authors>
     <Product>Octopus Deploy - NuGet Deployment Feed</Product>
     <Description>Octopus Deploy - NuGet Deployment Feed</Description>
@@ -37,8 +37,8 @@
   
   <ItemGroup>
     <PackageReference Include="ApplicationInsights.OwinExtensions" Version="0.5.0" />
-    <PackageReference Include="Autofac" Version="4.6.1" />
-    <PackageReference Include="Autofac.WebApi2" Version="4.1.0" />
+    <PackageReference Include="Autofac" Version="3.5.2" />
+    <PackageReference Include="Autofac.WebApi2.Owin" Version="4.0.0" />
     <PackageReference Include="Costura.Fody" Version="1.6.2" />
     <PackageReference Include="Microsoft.ApplicationInsights.EventSourceListener" Version="2.4.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.ServiceFabric.Native" Version="1.0.0-beta2" />

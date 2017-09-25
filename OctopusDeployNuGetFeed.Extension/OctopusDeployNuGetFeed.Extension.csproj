@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <FileVersion>3.2.0.0</FileVersion>
+    <Authors>Paul Marston</Authors>
+    <Product>Octopus Deploy - NuGet Deployment Feed Server Extension</Product>
+    <Description>Octopus Deploy - NuGet Deployment Feed Server Extension</Description>
+    <Company>Deep Thought Solutions</Company>
+    <Platforms>x64</Platforms>
+    <ApplicationIcon />
+    <OutputType>Library</OutputType>
+    <StartupObject />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatSpecificWarningsAsErrors />
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatSpecificWarningsAsErrors />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="3.5.2" />
+    <PackageReference Include="Costura.Fody" Version="1.6.2" />
+    <PackageReference Include="NETStandard.Library.NETFramework" Version="2.0.0-preview2-25405-01" />
+    <PackageReference Include="Nevermore" Version="4.0.0" />
+    <PackageReference Include="Nevermore.Contracts" Version="4.0.0" />
+    <PackageReference Include="Octopus.Configuration" Version="1.0.11" />
+    <PackageReference Include="Octopus.Data" Version="2.0.1" />
+    <PackageReference Include="Octopus.Diagnostics" Version="1.0.12" />
+    <PackageReference Include="Octopus.Server.Extensibility" Version="2.0.5" />
+    <PackageReference Include="Octopus.Server.Extensibility.Authentication" Version="4.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OctopusDeployNuGetFeed\OctopusDeployNuGetFeed.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Octopus.Core">
+      <HintPath>..\lib\Octopus.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

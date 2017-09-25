@@ -28,27 +28,39 @@ namespace OctopusDeployNuGetFeed.Services.NuGetFeed
 {
     public class NuGetFeedStartup : IOwinStartup
     {
+        private readonly IAppInsights _appInsights;
+        private readonly ILogger _logger;
+        private readonly ILifetimeScope _scope;
+
+        public NuGetFeedStartup(ILogger logger, IAppInsights appInsights, ILifetimeScope scope)
+        {
+            _logger = logger;
+            _appInsights = appInsights;
+            _scope = scope;
+        }
+
         public void Configuration(IAppBuilder app)
         {
+            app.UseAutofacLifetimeScopeInjector(_scope);
             if (Environment.UserInteractive)
                 app.Use(async (context, next) =>
                 {
-                    Program.Logger.Verbose($"{context.Request.Method} {context.Request.Uri}");
+                    _logger.Verbose($"{context.Request.Method} {context.Request.Uri}");
 
                     await next();
                 });
-            if (Program.Container.Resolve<IAppInsights>().IsEnabled)
+            if (_appInsights.IsEnabled)
                 app.UseApplicationInsights(new RequestTrackingConfiguration
                 {
                     ShouldTrackRequest = ShouldTrackRequest
                 });
 
-            app.Use<BasicAuthentication>();
+            app.UseMiddlewareFromContainer<BasicAuthentication>();
 
             var config = new HttpConfiguration();
 
-            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(Program.Logger));
-            config.DependencyResolver = new AutofacWebApiDependencyResolver(Program.Container);
+            config.Services.Replace(typeof(IExceptionHandler), new PassthroughExceptionHandler(_logger));
+            config.DependencyResolver = new AutofacWebApiDependencyResolver(_scope);
             config.Formatters.JsonFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("text/html"));
 
             config.Routes.MapHttpRoute(

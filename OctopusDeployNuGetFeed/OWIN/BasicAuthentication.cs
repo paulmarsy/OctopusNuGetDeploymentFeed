@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-using Autofac;
 using Microsoft.Owin;
 using OctopusDeployNuGetFeed.Octopus;
 
@@ -13,10 +12,10 @@ namespace OctopusDeployNuGetFeed.OWIN
     {
         private readonly IOctopusClientFactory _octopusClientFactory;
 
-        public BasicAuthentication(OwinMiddleware next) :
+        public BasicAuthentication(OwinMiddleware next, IOctopusClientFactory octopusClientFactory) :
             base(next)
         {
-            _octopusClientFactory = Program.Container.Resolve<IOctopusClientFactory>();
+            _octopusClientFactory = octopusClientFactory;
         }
 
         public override async Task Invoke(IOwinContext context)
